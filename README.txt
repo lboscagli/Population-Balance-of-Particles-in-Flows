@@ -8,7 +8,11 @@ To set up the problem, modify pbe.in for the PBE settings and psr.in for the PSR
 A number of test cases are provided, where the settings are built-in rather than read from input files. This ensures that they can always be used for reference if unaltered. Sample figures are provided in the directory test_cases_figures.
 
 For more explanations on the methods in this code, you may refer to the following book and references therein:
-Rigopoulos, S. ‘Population Balance of Particles in Flows: From Aerosols to Crystallisation’, Cambridge University Press, 2024. 
+Rigopoulos, S. ‘Population Balance of Particles in Flows: From Aerosols to Crystallisation’, Cambridge University Press, 2024.
+
+This is the first version of the code.
+The aggregation-fragmentation part can accommodate an arbitrary expanding grid, but a contracting grid is not yet implemented.
+Various updates will be carried out in the future.
 
 The following people contributed to the code:
 Stelios Rigopoulos
