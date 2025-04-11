@@ -1,0 +1,57 @@
+PBE INPUT DATA
+
+5                               ! Aggregation kernel
+1.                              ! Aggregation kernel constant
+0                               ! Nucleation range (0 for no nucleation)
+0.                              ! Nucleation rate
+0                               ! Growth model
+0.1                             ! Growth rate
+1.                              ! Growth exponent (power-law model)
+0                               ! Mass-conservative growth discretisation
+0.                              ! Fragmentation rate constant
+3                               ! Order of Gaussian quadrature (for fragmentation)
+1                               ! Grid type
+80                              ! Number of grid points
+0.05                            ! Minimum size in grid
+1.E4                            ! Maximum size in grid
+1.                              ! Volume of nuclei
+2                               ! Initial distribution
+1                               ! First non-zero interval for top-hat distribution
+1                               ! Second non-zero interval for top-hat distribution
+1.                              ! Value for initialising number density
+1                               ! Integration method
+
+Aggregation kernels:
+0. No aggregation
+1. Constant
+2. Sum
+3. Product
+4. Free molecular
+5. Brownian motion
+6. Shear
+
+Growth models:
+0. No growth
+1. Size-independent
+2. Power-law
+
+Fragmentation:
+Set fragmentation rate constant to 0. for no fragmentation
+Uniform binary is currently implemented, for other models edit breakage_fcn
+
+Grid types:
+1. Geometric
+2. Uniform
+
+Initial distributions:
+1: Zero
+2: Top hat
+
+Nucleation range:
+- 0 for no nucleation
+- Range of intervals where nucleation occurs
+
+Integration methods:
+1. Explicit Euler
+2. 2nd order Runge-Kutta
+3. 4th order Runge-Kutta

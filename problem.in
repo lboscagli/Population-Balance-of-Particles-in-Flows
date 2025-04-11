@@ -1,0 +1,12 @@
+PBE problem specification
+
+1                              ! Problem choice
+
+Problem choices (all with continuous PBE except option 7):
+1. PSR with user inputs
+2. Test case: aggregation with constant kernel
+3. Test case: aggregation with Brownian kernel
+4. Test case: aggregation-growth
+5. Test case: nucleation-growth
+6. Test case: uniform binary fragmentation
+7. Test case: discrete PBE, aggregation with Brownian kernel
