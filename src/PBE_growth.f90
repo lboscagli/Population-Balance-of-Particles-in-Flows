@@ -223,7 +223,7 @@ subroutine pbe_growth_ice(index,g_coeff1,g_coeff2)
   !  endif
   !enddo
 
-  X_water = 1.0 ! water molecular fraction
+  X_water = 0.0815 ! water molecular fraction
   RH = 1.2 ! Relative humidity
   M_water = 18.016 ! water molecular weigth
   temp = 208.15 ! ambient temperature in kelvin
@@ -237,17 +237,19 @@ subroutine pbe_growth_ice(index,g_coeff1,g_coeff2)
   * (53.878 - 1331.22 / temp - 9.44523 * log(temp) &
   + 0.014025 * temp))
   
-  write(*,*) 'p_water_sat_liq: ',p_water_sat_liq
+  !write(*,*) 'p_water_sat_liq: ',p_water_sat_liq
 
   ! water vapor partial pressure
   !p_water = p * X_water
   p_water = p_water_sat_liq * RH
   
-  write(*,*) 'p_water: ',p_water
+  !write(*,*) 'p_water: ',p_water
 
   ! saturated (relative to ice) water vapour partial pressure 
   p_water_sat_ice = exp(9.550426 - 5723.265 / temp + 3.53068 * log(temp) &
                     - 0.00728332 * temp) 
+  
+  !write(*,*) 'p_water_sat_ice: ',p_water_sat_ice
 
   den_ice = 917.0 ! constant ice particle density (neglecting soot core) 
 
