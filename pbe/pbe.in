@@ -1,20 +1,20 @@
 PBE INPUT DATA
 
-5                               ! Aggregation kernel
+0                               ! Aggregation kernel
 1.                              ! Aggregation kernel constant
 0                               ! Nucleation range (0 for no nucleation)
 0.                              ! Nucleation rate
-0                               ! Growth model
+4                               ! Growth model
 0.1                             ! Growth rate
 1.                              ! Growth exponent (power-law model)
 0                               ! Mass-conservative growth discretisation
 0.                              ! Fragmentation rate constant
 3                               ! Order of Gaussian quadrature (for fragmentation)
-1                               ! Grid type
-80                              ! Number of grid points
-0.05                            ! Minimum size in grid
-1.E4                            ! Maximum size in grid
-1.                              ! Volume of nuclei
+2                               ! Grid type
+65                              ! Number of grid points
+3.35103e-23 !0.05                            ! Minimum size in grid
+1.84307e-22 !1.E4                            ! Maximum size in grid
+3.35103e-23 !1.                              ! Volume of nuclei
 2                               ! Initial distribution
 1                               ! First non-zero interval for top-hat distribution
 1                               ! Second non-zero interval for top-hat distribution
@@ -34,6 +34,7 @@ Growth models:
 0. No growth
 1. Size-independent
 2. Power-law
+4. Ice
 
 Fragmentation:
 Set fragmentation rate constant to 0. for no fragmentation

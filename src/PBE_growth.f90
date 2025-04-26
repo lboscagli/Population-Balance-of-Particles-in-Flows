@@ -55,6 +55,22 @@ else if (growth_function==2) then
   g_termr = g_coeff1*(v(index)**g_coeff2)
   g_terml = g_coeff1*(v(index-1)**g_coeff2)
 
+else if (growth_function==4) then
+  ! Ice growth model (Karcher et al 1999)
+  ! Luca Boscagli 25/04/205: adapted for CPMOD 
+
+  ! compute g_coeff1 and g_coeff2 from kinetic growth model
+  call pbe_growth_ice(index,g_coeff1,g_coeff2)
+
+!  For debug  
+!  if (index<5) then
+!    write(*,*) 'g_coeff1: ',g_coeff1
+!    write(*,*) 'g_coeff2: ',g_coeff2
+!  endif
+  
+  g_termr = g_coeff1*(v(index)**g_coeff2)
+  g_terml = g_coeff1*(v(index-1)**g_coeff2)  
+
 end if
 
 !----------------------------------------------------------------------------------------------
@@ -155,3 +171,114 @@ end if
 end subroutine growth_tvd
 
 !**********************************************************************************************
+
+!**********************************************************************************************
+
+subroutine pbe_growth_ice(index,g_coeff1,g_coeff2)
+
+!**********************************************************************************************
+!
+! Computation of g_coeff1 from kinetic growth model
+!
+! Based on deposition model by Karcher et al. 1996:
+! "The initial composition of jet condensation trails"
+! and also based on Ferreira et al. 2024: 
+! "Developing a numerical framework for high-fidelity simulation of contrails: sensitivity analysis for conventional contrails"
+!    
+! Daniel Fredrich 13/01/2025
+! Luca Boscagli 25/04/205: adapted for CPMOD 
+!
+!**********************************************************************************************
+
+  !use arrays, only : p,ajc
+  !use chemistry, only : nsp,fsc,temp,sumn,names,wm
+  !use euler_part_interface
+  use pbe_mod, only :v0, v_m !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
+    
+  implicit none
+
+  !class(pbe_growth) :: this
+  ! integer, intent(in)  :: ijk
+  integer, intent(in)  :: index
+  double precision, intent(out)              :: g_coeff1, g_coeff2
+  !integer :: isp
+  double precision :: p_water,p_water_sat_ice,temp,p
+  double precision :: X_water,M_water
+  double precision :: r_part,r_nuc,den_ice
+  double precision :: dif_water,lambda_water
+  double precision :: coll_factor,Kn,alpha
+  double precision :: fornow,drdt
+  double precision :: part_den_l, part_den_r, part_den
+  real,parameter :: pi = 3.141592653589793E+00
+  double precision :: gascon=8314.3
+  !real, allocatable, dimension(:)                 :: part_den(:) ! Density of particles in an arbitrary bin of the PSD (interpolated value)
+
+  
+  !----------------------------------------------------------------------------------------------
+
+  !do isp = 1,nsp          
+  !  if (trim(names(isp)) .eq. 'H2O') then
+  !    X_water = fsc(isp,ijk) / sumn(ijk) ! water molecular fraction
+  !    M_water = wm(isp) ! water molecular weigth
+  !  endif
+  !enddo
+
+  X_water = 1.0 ! water molecular fraction
+  M_water = 18.016 ! water molecular weigth
+  temp = 208.15 ! ambient temperature in kelvin
+  p = 16235.70 ! ambient pressure in Pascal
+  part_den_r = 1550.0				! Density of particles on the right side of the PSD (kg/m^3)
+  part_den_l = 1550.0				! Density of particles on the left side of the PSD (kg/m^3)
+  !v0 = v_nuc ! 3.35103e-23 
+  
+  ! water vapor partial pressure
+  p_water = p * X_water
+  
+  ! saturated (relative to ice) water vapour partial pressure 
+  p_water_sat_ice = exp(9.550426 - 5723.265 / temp + 3.53068 * log(temp) &
+                    - 0.00728332 * temp) 
+
+  den_ice = 917.0 ! constant ice particle density (neglecting soot core) 
+
+  r_part = (3.0 / (4.0 * pi) * v_m(index))**(1.0/3.0)  ! radius of spherically assumed particles computed from the volume at the middle of each bin v_m
+  r_nuc = (3.0 / (4.0 * pi) * v0)**(1.0/3.0)        ! radius of the nuclei (samllest particle volume) - this is constant
+
+  !write(*,*) 'r_nuc: ',r_nuc
+  part_den = (part_den_l * r_nuc**3.0 + den_ice * &
+                          (r_part**3.0 - r_nuc**3.0)) / r_part**3.0  ! particle density
+
+  !write(*,*) 'part_den: ',r_nuc
+
+  dif_water = 2.11D-5 * 101325.0 / p * (temp / 273.15)**1.94  ! diffusion coefficient of water vapor molecules in air 
+  lambda_water = 6.15D-8 * 101325.0 / p * temp / 273.15       ! water vapor mean free path
+
+  Kn = lambda_water / r_part  ! knudsen number 
+  alpha = 0.1 ! deposition coefficient. Higher values of alpha speed up the deposition rate
+
+  coll_factor = 1.0 / (1.0 / (1.0 + Kn) + 4.0 / 3.0 * Kn / alpha) ! collision factor (G), accounts for transition from gas kinetic energy (G->1 for Kn->0) to continuum regime (G->0 for Kn->1)
+
+  fornow = dif_water * coll_factor * M_water * (p_water - p_water_sat_ice) &
+          / (gascon * temp)   ! nominator of dr/dt 
+                                  ! [ M_water * p_water_sat_ice / (gascon * temp)]: saturated (relative to ice) water vapor density (considering compressibility factor approx = 1)
+                                  ! This is calling gascon = 8314.3 J/K/kg (in module_chemistry.f90)
+                                  ! gascon/M_water is the specific gas constant for water vapor, i.e., Rv = 461.52 J/K/kg
+                                  
+
+  drdt = fornow / (part_den * r_part) ! change in particle radius over time
+
+  g_coeff2 = 2.0 / 3.0 
+  g_coeff1 = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
+
+  
+
+!! Luca: the section below is not needed for CPMOD standalone (no coupling with BOFFIN)
+!  dmdt = 4.0 * pi * r_part * fornow
+
+!  m_source(ijk) = m_source(ijk) + dmdt * this%ni_part_pbe(index) &
+!                * this%dv_part(index) * ajc(ijk)                       ! [kg/s] !ajc is the jacobian of the coordinate transformation (BOFFIN manual p.16 and p.41)
+                                                                                !Presumably if the computational grid is already orthogonal, then this is an identity matrix?
+
+
+end subroutine pbe_growth_ice
+
+!-------------------------------------------------------------------------------
