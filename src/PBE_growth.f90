@@ -202,7 +202,7 @@ subroutine pbe_growth_ice(index,g_coeff1,g_coeff2)
   integer, intent(in)  :: index
   double precision, intent(out)              :: g_coeff1, g_coeff2
   !integer :: isp
-  double precision :: p_water,p_water_sat_ice,temp,p
+  double precision :: p_water,p_water_sat_ice,temp,p,p_water_sat_liq,RH
   double precision :: X_water,M_water
   double precision :: r_part,r_nuc,den_ice
   double precision :: dif_water,lambda_water
@@ -224,6 +224,7 @@ subroutine pbe_growth_ice(index,g_coeff1,g_coeff2)
   !enddo
 
   X_water = 1.0 ! water molecular fraction
+  RH = 1.2 ! Relative humidity
   M_water = 18.016 ! water molecular weigth
   temp = 208.15 ! ambient temperature in kelvin
   p = 16235.70 ! ambient pressure in Pascal
@@ -231,9 +232,19 @@ subroutine pbe_growth_ice(index,g_coeff1,g_coeff2)
   part_den_l = 1550.0				! Density of particles on the left side of the PSD (kg/m^3)
   !v0 = v_nuc ! 3.35103e-23 
   
-  ! water vapor partial pressure
-  p_water = p * X_water
+  p_water_sat_liq = exp(54.842763 - 6763.22 / temp - 4.21 * log(temp) &
+  + 0.000367 * temp + tanh(0.0415 * (temp - 218.8)) &
+  * (53.878 - 1331.22 / temp - 9.44523 * log(temp) &
+  + 0.014025 * temp))
   
+  write(*,*) 'p_water_sat_liq: ',p_water_sat_liq
+
+  ! water vapor partial pressure
+  !p_water = p * X_water
+  p_water = p_water_sat_liq * RH
+  
+  write(*,*) 'p_water: ',p_water
+
   ! saturated (relative to ice) water vapour partial pressure 
   p_water_sat_ice = exp(9.550426 - 5723.265 / temp + 3.53068 * log(temp) &
                     - 0.00728332 * temp) 
