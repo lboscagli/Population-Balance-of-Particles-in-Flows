@@ -32,6 +32,8 @@ implicit none
 double precision, dimension(m), intent(inout) :: ni
 double precision, intent(in)                  :: dt
 
+integer i
+
 double precision niprime(m),nitemp(m)
 double precision k1(m),k2(m),k3(m),k4(m)
 
@@ -68,6 +70,13 @@ else if (solver_pbe == 3) then
   ni = ni + (1.D0 / 6.D0) * k1 + (1.D0 / 3.D0) * k2 + (1.D0 / 3.D0) * k3 + (1.D0 / 6.D0) * k4
 
 end if
+
+!Eliminate the negative values of number density which are not physical - Luca 27/04/2025
+do i = 1,m
+  if (ni(i) < 0.0) then
+    ni(i) = 0.0
+  endif
+enddo  
 
 end subroutine pbe_integ
 
