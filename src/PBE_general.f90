@@ -44,6 +44,8 @@ double precision g_coeff1,g_coeff2
 double precision nuc1
 double precision N0
 
+double precision :: amb_temp, amb_p, RH, part_den_l
+
 integer m,grid_type
 integer i_gm,solver_pbe
 integer initdis,n_th1,n_th2
@@ -206,6 +208,41 @@ end if
 end subroutine pbe_read
 
 !**********************************************************************************************
+
+
+!**********************************************************************************************
+
+subroutine pbe_ice_read()
+
+!**********************************************************************************************
+!
+! Initialises ICE data
+!
+! Luca Boscagli 29/04/2025
+!
+!**********************************************************************************************
+  use pbe_mod
+  
+  implicit none
+  
+  integer i
+  
+  !----------------------------------------------------------------------------------------------
+  
+  ! Read ICE input data
+  open(30,file='psr/ice.in')
+  do i=1,2
+    read(30,*)
+  end do
+  read(30,*) amb_p
+  read(30,*) amb_temp
+  read(30,*) RH
+  read(30,*) part_den_l
+  close(30)
+  
+end subroutine pbe_ice_read
+  
+  !**********************************************************************************************
 
 
 

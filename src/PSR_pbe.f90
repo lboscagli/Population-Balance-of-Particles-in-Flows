@@ -9,6 +9,7 @@ subroutine psr_pbe()
 ! Modified 25/06/2020
 !
 !**********************************************************************************************
+use pbe_mod, only: growth_function
 
 implicit none
 
@@ -41,6 +42,10 @@ read(30,*) agg_kernel_update
 read(30,*) i_writesp
 read(30,*) n_write
 close(30)
+
+if (growth_function==4) then
+   call pbe_ice_read()
+endif
 
 ! Initialise PSR integration
 n_steps = int_time/dt

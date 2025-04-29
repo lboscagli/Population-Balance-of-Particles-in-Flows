@@ -194,7 +194,7 @@ subroutine pbe_growth_ice(index,g_coeff1,g_coeff2)
   !use chemistry, only : nsp,fsc,temp,sumn,names,wm
   !use euler_part_interface
   use pbe_mod, only :v0, v_m !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
-    
+  use pbe_mod, only :amb_temp, amb_p, RH, part_den_l 
   implicit none
 
   !class(pbe_growth) :: this
@@ -202,13 +202,13 @@ subroutine pbe_growth_ice(index,g_coeff1,g_coeff2)
   integer, intent(in)  :: index
   double precision, intent(out)              :: g_coeff1, g_coeff2
   !integer :: isp
-  double precision :: p_water,p_water_sat_ice,temp,p,p_water_sat_liq,RH
-  double precision :: X_water,M_water
+  double precision :: p_water,p_water_sat_ice,amb_rho,p_water_sat_liq !,RH,amb_temp,amb_p
+  double precision :: X_water,M_water,M_air
   double precision :: r_part,r_nuc,den_ice
   double precision :: dif_water,lambda_water
   double precision :: coll_factor,Kn,alpha
   double precision :: fornow,drdt
-  double precision :: part_den_l, part_den_r, part_den
+  double precision :: part_den !, part_den_l, part_den_r
   real,parameter :: pi = 3.141592653589793E+00
   double precision :: gascon=8314.3
   !real, allocatable, dimension(:)                 :: part_den(:) ! Density of particles in an arbitrary bin of the PSD (interpolated value)
@@ -224,18 +224,20 @@ subroutine pbe_growth_ice(index,g_coeff1,g_coeff2)
   !enddo
 
   X_water = 0.0815 ! water molecular fraction
-  RH = 1.2 ! Relative humidity
+  !RH = 1.2 ! Relative humidity
   M_water = 18.016 ! water molecular weigth
-  temp = 208.15 ! ambient temperature in kelvin
-  p = 16235.70 ! ambient pressure in Pascal
-  part_den_r = 1550.0				! Density of particles on the right side of the PSD (kg/m^3)
-  part_den_l = 1550.0				! Density of particles on the left side of the PSD (kg/m^3)
+  M_air = 28.96 ! air molecular weigth
+  !amb_temp = 208.15 ! ambient temperature in kelvin
+  !amb_p = 16235.70 ! ambient pressure in Pascal
+  amb_rho = amb_p/(gascon/M_air)/amb_temp ! ambient air density
+  !part_den_r = 1550.0				! Density of particles on the right side of the PSD (kg/m^3)
+  !part_den_l = 1550.0				! Density of particles on the left side of the PSD (kg/m^3)
   !v0 = v_nuc ! 3.35103e-23 
   
-  p_water_sat_liq = exp(54.842763 - 6763.22 / temp - 4.21 * log(temp) &
-  + 0.000367 * temp + tanh(0.0415 * (temp - 218.8)) &
-  * (53.878 - 1331.22 / temp - 9.44523 * log(temp) &
-  + 0.014025 * temp))
+  p_water_sat_liq = exp(54.842763 - 6763.22 / amb_temp - 4.21 * log(amb_temp) &
+  + 0.000367 * amb_temp + tanh(0.0415 * (amb_temp - 218.8)) &
+  * (53.878 - 1331.22 / amb_temp - 9.44523 * log(amb_temp) &
+  + 0.014025 * amb_temp))
   
   !write(*,*) 'p_water_sat_liq: ',p_water_sat_liq
 
@@ -246,8 +248,8 @@ subroutine pbe_growth_ice(index,g_coeff1,g_coeff2)
   !write(*,*) 'p_water: ',p_water
 
   ! saturated (relative to ice) water vapour partial pressure 
-  p_water_sat_ice = exp(9.550426 - 5723.265 / temp + 3.53068 * log(temp) &
-                    - 0.00728332 * temp) 
+  p_water_sat_ice = exp(9.550426 - 5723.265 / amb_temp + 3.53068 * log(amb_temp) &
+                    - 0.00728332 * amb_temp) 
   
   !write(*,*) 'p_water_sat_ice: ',p_water_sat_ice
 
@@ -262,8 +264,8 @@ subroutine pbe_growth_ice(index,g_coeff1,g_coeff2)
 
   !write(*,*) 'part_den: ',r_nuc
 
-  dif_water = 2.11D-5 * 101325.0 / p * (temp / 273.15)**1.94  ! diffusion coefficient of water vapor molecules in air 
-  lambda_water = 6.15D-8 * 101325.0 / p * temp / 273.15       ! water vapor mean free path
+  dif_water = 2.11D-5 * 101325.0 / amb_p * (amb_temp / 273.15)**1.94  ! diffusion coefficient of water vapor molecules in air 
+  lambda_water = 6.15D-8 * 101325.0 / amb_p * amb_temp / 273.15       ! water vapor mean free path
 
   Kn = lambda_water / r_part  ! knudsen number 
   alpha = 0.1 ! deposition coefficient. Higher values of alpha speed up the deposition rate
@@ -271,8 +273,8 @@ subroutine pbe_growth_ice(index,g_coeff1,g_coeff2)
   coll_factor = 1.0 / (1.0 / (1.0 + Kn) + 4.0 / 3.0 * Kn / alpha) ! collision factor (G), accounts for transition from gas kinetic energy (G->1 for Kn->0) to continuum regime (G->0 for Kn->1)
 
   fornow = dif_water * coll_factor * M_water * (p_water - p_water_sat_ice) &
-          / (gascon * temp)   ! nominator of dr/dt 
-                                  ! [ M_water * p_water_sat_ice / (gascon * temp)]: saturated (relative to ice) water vapor density (considering compressibility factor approx = 1)
+          / (gascon * amb_temp)   ! nominator of dr/dt 
+                                  ! [ M_water * p_water_sat_ice / (gascon * amb_temp)]: saturated (relative to ice) water vapor density (considering compressibility factor approx = 1)
                                   ! This is calling gascon = 8314.3 J/K/kg (in module_chemistry.f90)
                                   ! gascon/M_water is the specific gas constant for water vapor, i.e., Rv = 461.52 J/K/kg
                                   
