@@ -229,7 +229,7 @@ subroutine pbe_growth_ice(index,g_coeff1,g_coeff2)
   M_air = 28.96 ! air molecular weigth
   !amb_temp = 208.15 ! ambient temperature in kelvin
   !amb_p = 16235.70 ! ambient pressure in Pascal
-  amb_rho = amb_p/(gascon/M_air)/amb_temp ! ambient air density
+  ! amb_rho = amb_p/(gascon/M_air)/amb_temp ! ambient air density
   !part_den_r = 1550.0				! Density of particles on the right side of the PSD (kg/m^3)
   !part_den_l = 1550.0				! Density of particles on the left side of the PSD (kg/m^3)
   !v0 = v_nuc ! 3.35103e-23 

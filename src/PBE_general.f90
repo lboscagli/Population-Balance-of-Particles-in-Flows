@@ -44,7 +44,7 @@ double precision g_coeff1,g_coeff2
 double precision nuc1
 double precision N0
 
-double precision :: amb_temp, amb_p, RH, part_den_l
+double precision :: amb_temp, amb_p, amb_rho, RH, part_den_l
 
 integer m,grid_type
 integer i_gm,solver_pbe
@@ -222,7 +222,7 @@ subroutine pbe_ice_read()
 !
 !**********************************************************************************************
   use pbe_mod
-  
+
   implicit none
   
   integer i
@@ -236,6 +236,7 @@ subroutine pbe_ice_read()
   end do
   read(30,*) amb_p
   read(30,*) amb_temp
+  read(30,*) amb_rho
   read(30,*) RH
   read(30,*) part_den_l
   close(30)

@@ -2,5 +2,6 @@ ICE INPUT DATA
 
 16235.70                            ! Ambient pressure [Pa]
 208.15                              ! Ambient temperature [K]
+0.2716861311234861                  ! Ambient density [kg/m^3]
 1.0                                 ! Relative Humidity [-]
-1.5E6                               ! Density of particles on the left side of the PSD (kg/m^3)
+1.5E6                               ! Density of particles on the left side of the PSD [kg/m^3]
