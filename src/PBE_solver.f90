@@ -38,6 +38,22 @@ double precision niprime(m),nitemp(m)
 double precision k1(m),k2(m),k3(m),k4(m)
 
 !----------------------------------------------------------------------------------------------
+if (growth_function==4) then
+
+  !Eliminate the negative values of number density which are not physical - Luca 27/04/2025
+  do i = 1,m
+    if (ni(i) < 0.0) then
+      ni(i) = 0.0
+    endif
+  enddo 
+
+  do i = 1,m
+
+    ni(i) = ni(i) * amb_rho
+  
+  enddo
+
+endif
 
 if (solver_pbe == 1) then
 
@@ -71,12 +87,22 @@ else if (solver_pbe == 3) then
 
 end if
 
-!Eliminate the negative values of number density which are not physical - Luca 27/04/2025
-do i = 1,m
-  if (ni(i) < 0.0) then
-    ni(i) = 0.0
-  endif
-enddo  
+if (growth_function==4) then
+  do i = 1,m
+
+    ni(i) = ni(i) / amb_rho
+  
+  enddo  
+  
+  !Eliminate the negative values of number density which are not physical - Luca 27/04/2025
+  do i = 1,m
+    if (ni(i) < 0.0) then
+      ni(i) = 0.0
+    endif
+  enddo 
+
+endif
+ 
 
 end subroutine pbe_integ
 
