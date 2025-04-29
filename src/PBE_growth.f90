@@ -223,16 +223,15 @@ subroutine pbe_growth_ice(index,g_coeff1,g_coeff2)
   !  endif
   !enddo
 
-  ! X_water = 0.0815 ! water molecular fraction
-  !RH = 1.2 ! Relative humidity
+  ! X_water =  water molecular fraction
+  ! RH = Relative humidity
   M_water = 18.016 ! water molecular weigth
   ! M_air = 28.96 ! air molecular weigth
-  !amb_temp = 208.15 ! ambient temperature in kelvin
-  !amb_p = 16235.70 ! ambient pressure in Pascal
-  !amb_rho = amb_p/(gascon/M_air)/amb_temp ! ambient air density
-  !part_den_r = 1550.0				! Density of particles on the right side of the PSD (kg/m^3)
-  !part_den_l = 1550.0				! Density of particles on the left side of the PSD (kg/m^3)
-  !v0 = v_nuc ! 3.35103e-23 
+  ! amb_temp = ambient temperature in kelvin
+  ! amb_p = ambient pressure in Pascal
+  ! amb_rho = amb_p/(gascon/M_air)/amb_temp ! ambient air density
+  ! part_den_l = 1550.0				! Density of particles on the left side of the PSD (kg/m^3)
+  ! v0 = v_nuc ! Nuclei volume  
   
   p_water_sat_liq = exp(54.842763 - 6763.22 / amb_temp - 4.21 * log(amb_temp) &
   + 0.000367 * amb_temp + tanh(0.0415 * (amb_temp - 218.8)) &
