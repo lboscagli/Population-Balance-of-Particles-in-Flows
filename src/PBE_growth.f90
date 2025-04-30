@@ -194,7 +194,7 @@ subroutine pbe_growth_ice(index,g_coeff1,g_coeff2)
   !use chemistry, only : nsp,fsc,temp,sumn,names,wm
   !use euler_part_interface
   use pbe_mod, only :v0, v_m !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
-  use pbe_mod, only :amb_temp, amb_p, amb_rho, RH, part_den_l 
+  use pbe_mod, only :amb_temp, amb_p, amb_rho, RH, part_den_l, alpha_ice 
   implicit none
 
   !class(pbe_growth) :: this
@@ -206,7 +206,7 @@ subroutine pbe_growth_ice(index,g_coeff1,g_coeff2)
   double precision :: M_water !,M_air, X_water
   double precision :: r_part,r_nuc,den_ice
   double precision :: dif_water,lambda_water
-  double precision :: coll_factor,Kn,alpha
+  double precision :: coll_factor,Kn!,alpha_ice
   double precision :: fornow,drdt
   double precision :: part_den !, part_den_l, part_den_r
   real,parameter :: pi = 3.141592653589793E+00
@@ -267,9 +267,9 @@ subroutine pbe_growth_ice(index,g_coeff1,g_coeff2)
   lambda_water = 6.15D-8 * 101325.0 / amb_p * amb_temp / 273.15       ! water vapor mean free path
 
   Kn = lambda_water / r_part  ! knudsen number 
-  alpha = 0.1 ! deposition coefficient. Higher values of alpha speed up the deposition rate
+  ! alpha_ice = 0.1 ! deposition coefficient. Higher values of alpha speed up the deposition rate
 
-  coll_factor = 1.0 / (1.0 / (1.0 + Kn) + 4.0 / 3.0 * Kn / alpha) ! collision factor (G), accounts for transition from gas kinetic energy (G->1 for Kn->0) to continuum regime (G->0 for Kn->1)
+  coll_factor = 1.0 / (1.0 / (1.0 + Kn) + 4.0 / 3.0 * Kn / alpha_ice) ! collision factor (G), accounts for transition from gas kinetic energy (G->1 for Kn->0) to continuum regime (G->0 for Kn->1)
 
   fornow = dif_water * coll_factor * M_water * (p_water - p_water_sat_ice) &
           / (gascon * amb_temp)   ! nominator of dr/dt 

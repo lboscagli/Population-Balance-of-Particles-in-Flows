@@ -44,7 +44,7 @@ double precision g_coeff1,g_coeff2
 double precision nuc1
 double precision N0
 
-double precision :: amb_temp, amb_p, amb_rho, RH, part_den_l
+double precision :: amb_temp, amb_p, amb_rho, RH, part_den_l, alpha_ice
 
 integer m,grid_type
 integer i_gm,solver_pbe
@@ -239,6 +239,7 @@ subroutine pbe_ice_read()
   read(30,*) amb_rho
   read(30,*) RH
   read(30,*) part_den_l
+  read(30,*) alpha_ice
   close(30)
   
 end subroutine pbe_ice_read
