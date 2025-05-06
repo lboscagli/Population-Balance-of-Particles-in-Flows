@@ -49,7 +49,7 @@ if (growth_function==4) then
 
   do i = 1,m
 
-    ni(i) = ni(i) * amb_rho
+    ni(i) = ni(i) * current_rho
   
   enddo
 
@@ -90,7 +90,7 @@ end if
 if (growth_function==4) then
   do i = 1,m
 
-    ni(i) = ni(i) / amb_rho
+    ni(i) = ni(i) / current_rho
   
   enddo  
   

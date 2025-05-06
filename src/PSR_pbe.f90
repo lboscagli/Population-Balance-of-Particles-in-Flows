@@ -9,7 +9,7 @@ subroutine psr_pbe()
 ! Modified 25/06/2020
 !
 !**********************************************************************************************
-use pbe_mod, only: growth_function
+use pbe_mod, only: growth_function, jet_cl_model, amb_temp, amb_rho, current_temp, current_rho
 
 implicit none
 
@@ -45,12 +45,22 @@ close(30)
 
 if (growth_function==4) then
    call pbe_ice_read()
+   current_temp = amb_temp
+   current_rho = amb_rho
+   !Open output file
+   open(999,file='pbe/ice_jet_temperature.out')
 endif
+
 
 ! Initialise PSR integration
 n_steps = int_time/dt
 current_time= 0.D0
 i_write = 0
+
+! Update the thermodynamic state if ice growth and if jet centerline model is activated
+if ((growth_function==4).and.(jet_cl_model>0)) then
+  call pbe_ice_update(current_time, current_temp, current_rho)
+endif
 
 !----------------------------------------------------------------------------------------------
 
@@ -60,6 +70,11 @@ i_write = 0
 call PBE_moments(ni,moment,meansize)
 
 do i_step = 1,n_steps
+  
+  !Write temperature to output
+  if (growth_function==4) then
+    write(999,1001) current_time,current_temp,current_rho
+  endif
 
   ! The following should be done if the kernel should be updated at each time step due to e.g. 
   ! temperature dependency
@@ -70,10 +85,20 @@ do i_step = 1,n_steps
   end if
 
   ! Integrate
-    call pbe_integ(ni,dt)
+  call pbe_integ(ni,dt)
 
   ! Calculate moments
   call pbe_moments(ni,moment,meansize)
+
+  if (growth_function==4) then
+    if (moment(0)==0) then
+      call pbe_init(ni)
+      call pbe_moments(ni,moment,meansize)
+    else 
+      write(*,*) 'moment(0) is no longer zero so ice growth starts'
+    endif
+  endif
+
 
   ! Write moments
   current_time = current_time + dt
@@ -85,6 +110,11 @@ do i_step = 1,n_steps
   end if
   i_write = i_write + 1
 
+  ! Update the thermodynamic state if ice growth and if jet centerline model is activated
+  if ((growth_function==4).and.(jet_cl_model>0)) then
+    call pbe_ice_update(current_time, current_temp, current_rho)
+  endif
+
 end do
 
 !----------------------------------------------------------------------------------------------
@@ -92,6 +122,13 @@ end do
 ! Deallocate arrays
 deallocate(ni)
 call PBE_deallocate()
+
+!Close ice ouptut file
+if (growth_function==4) then
+  close(999)
+endif   
+
+1001 format(6E20.10)
 
 end subroutine psr_pbe
 

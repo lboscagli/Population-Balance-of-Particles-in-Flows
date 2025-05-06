@@ -1,8 +1,11 @@
 ICE INPUT DATA
 
-16235.70                            ! Ambient pressure [Pa]
-208.15                              ! Ambient temperature [K]
-0.2716861311234861                  ! Ambient density [kg/m^3]
-1.0                                 ! Relative Humidity [-]
+18753.93                            ! Ambient pressure [Pa]
+225.15                              ! Ambient temperature [K]
+1.2                                 ! Relative Humidity [-]
 1.1E-4                              ! Density of particles on the left side of the PSD [kg/m^3]
 0.1                                 ! alpha [-] - Karcher et al. 1996 (deposition coefficient - default should be 0.1)
+0                                   ! flag for jet temperature centerline model (set to > 0 to turn on the model)
+0.018                               ! Jet diameter [m]
+96.4                               ! Jet initial velocity [m/s]
+363.15                               ! Jet initial temperature [K]

@@ -44,7 +44,7 @@ double precision g_coeff1,g_coeff2
 double precision nuc1
 double precision N0
 
-double precision :: amb_temp, amb_p, amb_rho, RH, part_den_l, alpha_ice
+double precision :: amb_temp, amb_p, amb_rho, RH, part_den_l, alpha_ice, jet_cl_model, diameter_jet, u_0j, T_0j, current_temp, current_rho
 
 integer m,grid_type
 integer i_gm,solver_pbe
@@ -225,6 +225,9 @@ subroutine pbe_ice_read()
 
   implicit none
   
+  double precision :: gascon=8314.3
+  double precision :: M_air=28.96
+
   integer i
   
   !----------------------------------------------------------------------------------------------
@@ -236,15 +239,72 @@ subroutine pbe_ice_read()
   end do
   read(30,*) amb_p
   read(30,*) amb_temp
-  read(30,*) amb_rho
   read(30,*) RH
   read(30,*) part_den_l
   read(30,*) alpha_ice
+  read(30,*) jet_cl_model
+  read(30,*) diameter_jet
+  read(30,*) u_0j
+  read(30,*) T_0j
   close(30)
+
+  amb_rho = amb_p / amb_temp / (gascon / M_air) 
   
 end subroutine pbe_ice_read
-  
+
+subroutine pbe_ice_update(time, jet_temp, jet_rho)
+
   !**********************************************************************************************
+  !
+  ! Update ICE data thermodynamic state based on Witze1974 + Karcher2015 jet centerline 
+  ! velocity and cooling rate model
+  !
+  ! Luca Boscagli 06/05/2025
+  !
+  !**********************************************************************************************
+    use pbe_mod
+  
+    implicit none
+
+    double precision, intent(in)                  :: time
+    double precision, intent(out)                  :: jet_temp, jet_rho
+    double precision :: epsilon, beta, x_m, r_0j, tau_m
+
+    double precision :: gascon=8314.3
+    double precision :: M_air = 28.96
+    
+    !----------------------------------------------------------------------------------------------
+    
+    ! Read ICE input data
+    
+    !Initial Jet radius
+    r_0j = 0.5*diameter_jet 
+    
+    !Model constants
+    epsilon = 0.0285 ! dimensioless turbulent diffusivity (Tollmien, 1926)
+    beta = 0.9 ! Dilution parameter (Karcher, 1999)
+    
+    !Maximum distance over which central jet region is unaffected by entrainement
+    x_m = r_0j * (2.0/epsilon)**0.5
+    
+    !Mixing timescale
+    tau_m = x_m / u_0j
+    
+    !Jet cooling rate
+    if (time.ge.tau_m) then
+      jet_temp = amb_temp + (T_0j-amb_temp) * (tau_m/time)**beta
+      !write(*,*) 'amb_temp'
+    else
+      jet_temp = T_0j
+    endif
+    jet_rho = amb_p / jet_temp / (gascon / M_air)
+
+    
+
+
+  end subroutine pbe_ice_update
+
+!**********************************************************************************************
 
 
 
