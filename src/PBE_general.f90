@@ -601,7 +601,7 @@ end subroutine pbe_moments
 
 !**********************************************************************************************
 
-subroutine pbe_output(ni,i_writesp)
+subroutine pbe_output(ni,i_writesp,i_step)
 
 !**********************************************************************************************
 !
@@ -619,6 +619,7 @@ implicit none
 
 double precision, dimension(m), intent(in) :: ni
 integer, intent(in) :: i_writesp
+integer, intent(in) :: i_step
 
 double precision :: nitemp(m),eta(m),psi(m)
 double precision, dimension(0:1) :: moment
@@ -626,6 +627,9 @@ double precision, dimension(0:1) :: moment
 double precision meansize
 
 integer i
+
+character(len=10) :: i_step_str
+
 
 !----------------------------------------------------------------------------------------------
 
@@ -638,7 +642,17 @@ do i=1,m
     nitemp(i) = ni(i)
   end if
 end do
-open(99,file='pbe/psd.out')
+if (growth_function==4) then
+  if (jet_cl_model>0) then
+    ! Convert integer to string
+    write(i_step_str, '(I0)') i_step
+    open(99,file='pbe/psd_T'//trim(i_step_str)//'.out')    
+  else
+    open(99,file='pbe/psd.out')
+  endif
+else
+  open(99,file='pbe/psd.out')
+endif
 do i=1,m
   write(99,1001) v_m(i),(6.D0/3.14159*v_m(i))**(1.D0/3.D0),nitemp(i), &
   & nitemp(i)*dv(i)/moment(0),v_m(i)*nitemp(i),v_m(i)*nitemp(i)*dv(i)/moment(1)

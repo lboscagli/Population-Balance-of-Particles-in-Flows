@@ -94,8 +94,8 @@ do i_step = 1,n_steps
     if (moment(0)==0) then
       call pbe_init(ni)
       call pbe_moments(ni,moment,meansize)
-    else 
-      write(*,*) 'moment(0) is no longer zero so ice growth starts'
+    !else 
+      !write(*,*) 'moment(0) is no longer zero so ice growth starts'
     endif
   endif
 
@@ -106,7 +106,7 @@ do i_step = 1,n_steps
   ! Write PSD
   if ((i_write==n_write).or.(i_step==n_steps)) then
     i_write = 0
-    call pbe_output(ni,i_writesp)
+    call pbe_output(ni,i_writesp,i_step)
   end if
   i_write = i_write + 1
 
