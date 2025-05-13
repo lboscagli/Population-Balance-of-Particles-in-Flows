@@ -44,7 +44,7 @@ double precision g_coeff1,g_coeff2
 double precision nuc1
 double precision N0
 
-double precision :: amb_temp, amb_p, amb_rho, RH, part_den_l, alpha_ice, jet_cl_model, diameter_jet, u_0j, T_0j, current_temp, current_rho
+double precision :: amb_temp, amb_p, amb_rho, RH, part_den_l, alpha_ice, jet_cl_model, diameter_jet, u_0j, T_0j, current_temp, current_rho, p_water
 
 integer m,grid_type
 integer i_gm,solver_pbe

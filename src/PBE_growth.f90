@@ -194,14 +194,14 @@ subroutine pbe_growth_ice(index, g_coeff1,g_coeff2)
   !use chemistry, only : nsp,fsc,temp,sumn,names,wm
   !use euler_part_interface
   use pbe_mod, only :v0, v_m !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
-  use pbe_mod, only :current_temp, amb_p, RH, part_den_l, alpha_ice 
+  use pbe_mod, only :current_temp, amb_p, RH, part_den_l, alpha_ice, p_water 
   implicit none
 
   !class(pbe_growth) :: this
   integer, intent(in)  :: index
   double precision, intent(out)              :: g_coeff1, g_coeff2
   !integer :: isp
-  double precision :: p_water,p_water_sat_ice,p_water_sat_liq !,RH,amb_temp,amb_p,amb_rho
+  double precision :: p_water_sat_ice,p_water_sat_liq !,RH,amb_temp,amb_p,amb_rho
   double precision :: M_water !,M_air, X_water
   double precision :: r_part,r_nuc,den_ice
   double precision :: dif_water,lambda_water
