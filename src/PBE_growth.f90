@@ -8,7 +8,7 @@
 
 !**********************************************************************************************
 
-subroutine growth_tvd(ni,index,growth_source)
+subroutine growth_tvd(ni,index,growth_source,G_term_m)
 
 !**********************************************************************************************
 !
@@ -25,7 +25,7 @@ implicit none
 
 double precision, dimension(m), intent(in) :: ni
 integer, intent(in)                        :: index
-double precision, intent(out)              :: growth_source
+double precision, intent(out)              :: growth_source, G_term_m
 
 double precision :: G_terml,G_termr,phi
 double precision :: gnl,gnr           !< (G*N) at left surface and right surface
@@ -70,6 +70,8 @@ else if (growth_function==4) then
   
   g_termr = g_coeff1*(v(index)**g_coeff2)
   g_terml = g_coeff1*(v(index-1)**g_coeff2)  
+
+  g_term_m = 0.5*(g_termr+g_terml)
 
 end if
 

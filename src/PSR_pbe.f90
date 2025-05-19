@@ -9,7 +9,7 @@ subroutine psr_pbe()
 ! Modified 25/06/2020
 !
 !**********************************************************************************************
-use pbe_mod, only: growth_function, jet_cl_model, amb_temp, amb_rho, current_temp, current_rho, p_water
+use pbe_mod, only: growth_function, jet_cl_model, amb_temp, amb_rho, current_temp, current_rho, p_water, tau_g
 
 implicit none
 
@@ -71,9 +71,9 @@ call PBE_moments(ni,moment,meansize)
 
 do i_step = 1,n_steps
   
-  !Write temperature to output
+  !Write temperature and growth timescale (tau_g) to output
   if (growth_function==4) then
-    write(999,1001) current_time,current_temp,current_rho,p_water
+    write(999,1001) current_time,current_temp,current_rho,p_water,tau_g
   endif
 
   ! The following should be done if the kernel should be updated at each time step due to e.g. 

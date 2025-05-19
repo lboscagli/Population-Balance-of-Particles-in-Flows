@@ -136,14 +136,20 @@ double precision, dimension(m), intent(out) :: niprime
 
 double precision dn(m)
 
-double precision growth_source,growth_mass_source,params(1)
+double precision growth_source,growth_mass_source,params(1),G_m,tau_g_num,tau_g_den
 
 integer index
+
+real,parameter :: pi = 3.141592653589793E+00
 
 !----------------------------------------------------------------------------------------------
 
 niprime = 0.
 params(1) = 0.
+
+!Initializa kinetics timescale
+tau_g_num = 0. ! numerator of growth timescale 
+tau_g_den = 0. ! denominator of growth timescale
 
 !Nucleation
 if (max_nuc>0) then
@@ -162,8 +168,10 @@ end if
 !Growth
 if (growth_function>0) then
   do index = 1,m
-    call growth_tvd(ni,index,growth_source)
+    call growth_tvd(ni,index,growth_source,G_m)
     niprime(index) = niprime(index) + growth_source
+    tau_g_num = tau_g_num + 3 * ((4/3*pi)**(2/3)) * (v_m(index)*niprime(index)*dv(index))
+    tau_g_den = tau_g_den + (4*pi) * (G_m * (v_m(index))**(-1/3)*niprime(index)*dv(index))
   end do
   if (i_gm==1) then
     ! For mass-conservative growth scheme, apply growth source term after the first interval
@@ -174,6 +182,10 @@ if (growth_function>0) then
     end do
   end if
 end if
+
+if (growth_function==4) then
+  tau_g = tau_g_num / tau_g_den 
+endif
 
 !Aggregation
 if (agg_kernel>0) then
