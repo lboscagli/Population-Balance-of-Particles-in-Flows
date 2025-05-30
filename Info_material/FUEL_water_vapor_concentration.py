@@ -1,5 +1,5 @@
 """
-Water vapor concentration calculator (Spyder version)
+Water vapor concentration calculator 
 
 Estimate mole and mass fraction of water vapor in the products of
 lean combustion (φ < 1) for hydrocarbon or oxygenated fuels.
@@ -47,7 +47,7 @@ class Fuel:
         n_O2 = (lam - 1) * self.a_st
         n_N2 = AIR_RATIO * lam * self.a_st
         total = n_H2O + n_CO2 + n_O2 + n_N2
-        return n_H2O / total
+        return n_H2O / total, n_CO2 /total
 
     def water_mass_fraction(self, phi):
         lam = 1 / phi
@@ -62,7 +62,7 @@ class Fuel:
             + n_O2 * MW["O2"]
             + n_N2 * MW["N2"]
         )
-        return n_H2O * MW["H2O"] / mass
+        return n_H2O * MW["H2O"] / mass, n_CO2 * MW["CO2"] / mass
 
 # --- Fuel presets (editable) ---
 fuel_db = {
@@ -76,14 +76,14 @@ fuel_db = {
 
 # === USER INPUTS BELOW THIS LINE ===
 
-phi = 0.24
+phi = 0.24#0.36
 fuel_name = "Jet-A"  # Choose from: Jet-A, n-heptane, butanol, HEFA-SPK, FT-1, FT-2
 
 # === DO NOT MODIFY BELOW THIS LINE ===
 
 fuel = fuel_db[fuel_name]
-X_H2O = fuel.water_mole_fraction(phi)
-w_H2O = fuel.water_mass_fraction(phi)
+X_H2O, X_CO2 = fuel.water_mole_fraction(phi)
+w_H2O, w_CO2 = fuel.water_mass_fraction(phi)
 lam = 1 / phi
 
 print(f"Fuel      : {fuel.name} ({fuel.formula})")
@@ -91,3 +91,5 @@ print(f"Phi (φ)   : {phi}")
 print(f"Lambda λ  : {lam:.2f} (excess-air factor)")
 print(f"X_H2O     : {X_H2O:.5f} ({X_H2O*100:.2f} %)")
 print(f"w_H2O     : {w_H2O:.5f} ({w_H2O*100:.2f} %)")
+print(f"X_CO2     : {X_CO2:.5f} ({X_CO2*100:.2f} %)")
+print(f"w_CO2     : {w_CO2:.5f} ({w_CO2*100:.2f} %)")

@@ -45,7 +45,7 @@ double precision nuc1
 double precision N0
 
 double precision :: amb_temp, amb_p, amb_rho, RH, part_den_l, alpha_ice
-double precision :: jet_cl_model, diameter_jet, u_0j, T_0j, current_temp, current_rho, p_water
+double precision :: jet_cl_model, diameter_jet, u_0j, T_0j, current_temp, current_rho, p_water, current_XH2O
 double precision :: tau_g
 
 integer m,grid_type
@@ -308,6 +308,52 @@ subroutine pbe_ice_update(time, jet_temp, jet_rho)
 
 !**********************************************************************************************
 
+  subroutine pbe_ice_update_LES(time, jet_temp, jet_rho, jet_XH2O)
+
+    !**********************************************************************************************
+    !
+    ! Update ICE data thermodynamic state and water vapor molar fraction based on LES data 
+    !
+    ! Luca Boscagli 29/05/2025
+    !
+    !**********************************************************************************************
+      use pbe_mod
+    
+      implicit none
+  
+      double precision, intent(in)                  :: time
+      double precision, intent(out)                  :: jet_temp, jet_rho, jet_XH2O
+      double precision :: a_T, b_T, a_XH2O, b_XH2O, c_XH2O, d_XH2O
+  
+      double precision :: gascon=8314.3
+      double precision :: M_air = 28.96
+      
+      !----------------------------------------------------------------------------------------------
+      
+      ! Read ICE input data
+      
+      !Parameters from fitting of LES data - this are case dependent and not general
+      a_T = 0.00195945
+      b_T = 0.91944564
+      a_XH2O = 2.21266860e-03
+      b_XH2O = 1.11064677
+      c_XH2O = 2.64000097e-02
+      d_XH2O = 7.90687593e-04
+      
+      !temperature
+      jet_temp = amb_temp + (T_0j - amb_temp)*(a_T/(time+a_T))**b_T 
+      
+      !Water vapor molar fraction
+      jet_XH2O = d_XH2O + (c_XH2O - d_XH2O)*(a_XH2O/(time+a_XH2O))**b_XH2O
+      
+      !Density
+      jet_rho = amb_p / jet_temp / (gascon / M_air)
+  
+  
+    end subroutine pbe_ice_update_LES
+  
+  !**********************************************************************************************
+  
 
 
 !**********************************************************************************************

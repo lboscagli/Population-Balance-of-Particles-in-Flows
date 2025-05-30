@@ -9,7 +9,7 @@ subroutine psr_pbe()
 ! Modified 25/06/2020
 !
 !**********************************************************************************************
-use pbe_mod, only: growth_function, jet_cl_model, amb_temp, amb_rho, current_temp, current_rho, p_water, tau_g
+use pbe_mod, only: growth_function, jet_cl_model, amb_temp, amb_rho, current_temp, current_rho, p_water, tau_g, current_XH2O
 
 implicit none
 
@@ -59,7 +59,12 @@ i_write = 0
 
 ! Update the thermodynamic state if ice growth and if jet centerline model is activated
 if ((growth_function==4).and.(jet_cl_model>0)) then
-  call pbe_ice_update(current_time, current_temp, current_rho)
+  if (jet_cl_model==1) then
+    call pbe_ice_update(current_time, current_temp, current_rho)
+  elseif (jet_cl_model==2) then
+    write(*,*) 'Using LES data...'
+    call pbe_ice_update_LES(current_time, current_temp, current_rho, current_XH2O)
+  endif
 endif
 
 !----------------------------------------------------------------------------------------------
@@ -73,7 +78,7 @@ do i_step = 1,n_steps
   
   !Write temperature and growth timescale (tau_g) to output
   if (growth_function==4) then
-    write(999,1001) current_time,current_temp,current_rho,p_water,tau_g
+    write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O
   endif
 
   ! The following should be done if the kernel should be updated at each time step due to e.g. 
@@ -112,7 +117,11 @@ do i_step = 1,n_steps
 
   ! Update the thermodynamic state if ice growth and if jet centerline model is activated
   if ((growth_function==4).and.(jet_cl_model>0)) then
-    call pbe_ice_update(current_time, current_temp, current_rho)
+    if (jet_cl_model==1) then
+      call pbe_ice_update(current_time, current_temp, current_rho)
+    elseif (jet_cl_model==2) then
+      call pbe_ice_update_LES(current_time, current_temp, current_rho, current_XH2O)
+    endif
   endif
 
 end do

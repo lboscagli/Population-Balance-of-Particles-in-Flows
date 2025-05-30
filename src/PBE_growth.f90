@@ -196,7 +196,8 @@ subroutine pbe_growth_ice(index, g_coeff1,g_coeff2)
   !use chemistry, only : nsp,fsc,temp,sumn,names,wm
   !use euler_part_interface
   use pbe_mod, only :v0, v_m !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
-  use pbe_mod, only :current_temp, amb_p, RH, part_den_l, alpha_ice, p_water 
+  use pbe_mod, only :current_temp, amb_p, RH, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model 
+  
   implicit none
 
   !class(pbe_growth) :: this
@@ -242,8 +243,11 @@ subroutine pbe_growth_ice(index, g_coeff1,g_coeff2)
   !write(*,*) 'p_water_sat_liq: ',p_water_sat_liq
 
   ! water vapor partial pressure
-  !p_water = p * X_water
-  p_water = p_water_sat_liq * RH
+  if (jet_cl_model==1) then
+    p_water = p_water_sat_liq * RH
+  elseif (jet_cl_model==2) then
+    p_water = amb_p * current_XH2O
+  endif  
   
   !write(*,*) 'p_water: ',p_water
 
@@ -282,8 +286,11 @@ subroutine pbe_growth_ice(index, g_coeff1,g_coeff2)
   drdt = fornow / (part_den * r_part) ! change in particle radius over time
 
   g_coeff2 = 2.0 / 3.0 
-  g_coeff1 = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
-
+  if (p_water.ge.p_water_sat_liq) then 
+    g_coeff1 = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
+  else
+    g_coeff1 = 0.0
+  endif  
   
 
 !! Luca: the section below is not needed for CPMOD standalone (no coupling with BOFFIN)
