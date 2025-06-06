@@ -333,12 +333,12 @@ subroutine pbe_ice_update(time, jet_temp, jet_rho)
       ! Read ICE input data
       
       !Parameters from fitting of LES data - this are case dependent and not general
-      a_T = 0.00195945
-      b_T = 0.91944564
-      a_XH2O = 2.21266860e-03
-      b_XH2O = 1.11064677
-      c_XH2O = 2.64000097e-02
-      d_XH2O = 7.90687593e-04
+      a_T = 0.00128922
+      b_T = 0.77394931
+      a_XH2O = 1.15187008e-03
+      b_XH2O = 7.22690952e-01
+      c_XH2O = 2.37237876e-02
+      d_XH2O = -1.14574449e-04
       
       !temperature
       jet_temp = amb_temp + (T_0j - amb_temp)*(a_T/(time+a_T))**b_T 
@@ -452,8 +452,12 @@ use pbe_mod
 implicit none
 
 double precision alpha,v1,v2
+double precision :: alpha_l,alpha_mid,alpha_r
+double precision :: grid_mid_l,grid_mid_r, v3, v4
 
 integer i
+integer :: m_l=10
+integer :: m_r=30
 
 !----------------------------------------------------------------------------------------------
 
@@ -488,6 +492,54 @@ else if (grid_type==2) then
   write(*,*) 'first node: ',v(1)
   write(*,*) 'right boundary: ',v(m)
   write(*,*) 'increment: ',alpha
+
+else if (grid_type==3) then
+  ! Define intermediate points
+  grid_mid_l = (v0 + (v0 - grid_lb)) * 10.0
+  grid_mid_r = grid_mid_l * 1000.0
+
+  write(*,*) 'grid_lb: ',grid_lb
+  write(*,*) 'grid_mid_l: ',grid_mid_l
+  write(*,*) 'grid_mid_r: ',grid_mid_r
+  write(*,*) 'grid_rb: ',grid_rb
+
+  !Option 3: composite grid
+  v(0) = grid_lb
+  v(1) = v0 + (v0 - grid_lb)
+  v1 = v(1) - grid_lb
+  v2 = grid_mid_l - grid_lb
+  call inc_ratio(v1,v2,m_l,alpha_l)
+  do i=2,m_l
+    v(i) = v(0)+(v(1)-v(0))*(1-alpha_l**real(i))/(1-alpha_l)
+    write(*,*) 'i: ',i 
+    write(*,*) 'v(i): ',v(i)
+  end do
+  
+  !write(*,*) 'left boundary: ',v(0)
+  !write(*,*) 'first node: ',v(1)
+  !write(*,*) 'right boundary mid-1: ',v(m_l)
+
+  alpha_mid = (grid_mid_r - grid_mid_l)/m_r
+  do i=m_l+1,m_l+m_r
+    v(i) = v(i-1) + alpha_mid
+    write(*,*) 'i: ',i 
+    write(*,*) 'v(i): ',v(i)    
+  end do
+
+  write(*,*) 'right boundary mid-2: ',v(m_l+m_r)   
+
+  v3 = grid_mid_r - v(m_l+m_r-1)
+  v4 = grid_rb - v(m_l+m_r-1)
+  call inc_ratio(v3,v4,m-(m_l+m_r),alpha_r)
+  do i=m_l+m_r+1,m
+    v(i) = v(m_l+m_r-1)+(grid_mid_r-v(m_l+m_r-1))*(1-alpha_r**real(i-m_l-m_r))/(1-alpha_r)
+    write(*,*) 'i: ',i 
+    write(*,*) 'v(i): ',v(i)    
+  end do
+ 
+  write(*,*) 'alpha_l: ',alpha_l
+  write(*,*) 'alpha_r: ',alpha_r
+
 
 end if
 
