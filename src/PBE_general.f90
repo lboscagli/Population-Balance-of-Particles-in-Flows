@@ -456,8 +456,8 @@ double precision :: alpha_l,alpha_mid,alpha_r
 double precision :: grid_mid_l,grid_mid_r, v3, v4
 
 integer i
-integer :: m_l=10
-integer :: m_r=30
+integer :: m_l
+integer :: m_r
 
 !----------------------------------------------------------------------------------------------
 
@@ -494,16 +494,22 @@ else if (grid_type==2) then
   write(*,*) 'increment: ',alpha
 
 else if (grid_type==3) then
+  !Option 3: composite grid
+
+  ! Size the grid
+  m_l = int(m*0.3)
+  m_r = int(m*0.5)
+
   ! Define intermediate points
-  grid_mid_l = (v0 + (v0 - grid_lb)) * 10.0
-  grid_mid_r = grid_mid_l * 1000.0
+  grid_mid_l = (v0 + (v0 - grid_lb)) * 50.0
+  grid_mid_r = (grid_mid_l + grid_rb) * 0.5
 
   write(*,*) 'grid_lb: ',grid_lb
   write(*,*) 'grid_mid_l: ',grid_mid_l
   write(*,*) 'grid_mid_r: ',grid_mid_r
   write(*,*) 'grid_rb: ',grid_rb
 
-  !Option 3: composite grid
+  ! First part: geometric progression
   v(0) = grid_lb
   v(1) = v0 + (v0 - grid_lb)
   v1 = v(1) - grid_lb
@@ -511,34 +517,36 @@ else if (grid_type==3) then
   call inc_ratio(v1,v2,m_l,alpha_l)
   do i=2,m_l
     v(i) = v(0)+(v(1)-v(0))*(1-alpha_l**real(i))/(1-alpha_l)
-    write(*,*) 'i: ',i 
-    write(*,*) 'v(i): ',v(i)
+    !write(*,*) 'i: ',i 
+    !write(*,*) 'v(i): ',v(i)
   end do
   
   !write(*,*) 'left boundary: ',v(0)
   !write(*,*) 'first node: ',v(1)
   !write(*,*) 'right boundary mid-1: ',v(m_l)
 
+  ! Second (middle) part: uniform
   alpha_mid = (grid_mid_r - grid_mid_l)/m_r
   do i=m_l+1,m_l+m_r
     v(i) = v(i-1) + alpha_mid
-    write(*,*) 'i: ',i 
-    write(*,*) 'v(i): ',v(i)    
+    !write(*,*) 'i: ',i 
+    !write(*,*) 'v(i): ',v(i)    
   end do
 
   write(*,*) 'right boundary mid-2: ',v(m_l+m_r)   
 
+  ! Third (final) part: geometric progression
   v3 = grid_mid_r - v(m_l+m_r-1)
   v4 = grid_rb - v(m_l+m_r-1)
   call inc_ratio(v3,v4,m-(m_l+m_r),alpha_r)
   do i=m_l+m_r+1,m
     v(i) = v(m_l+m_r-1)+(grid_mid_r-v(m_l+m_r-1))*(1-alpha_r**real(i-m_l-m_r))/(1-alpha_r)
-    write(*,*) 'i: ',i 
-    write(*,*) 'v(i): ',v(i)    
+    !write(*,*) 'i: ',i 
+    !write(*,*) 'v(i): ',v(i)    
   end do
  
-  write(*,*) 'alpha_l: ',alpha_l
-  write(*,*) 'alpha_r: ',alpha_r
+  !write(*,*) 'alpha_l: ',alpha_l
+  !write(*,*) 'alpha_r: ',alpha_r
 
 
 end if
@@ -755,7 +763,7 @@ else
 endif
 do i=1,m
   write(99,1001) v_m(i),(6.D0/3.14159*v_m(i))**(1.D0/3.D0),nitemp(i), &
-  & nitemp(i)*dv(i)/moment(0),v_m(i)*nitemp(i),v_m(i)*nitemp(i)*dv(i)/moment(1)
+  & nitemp(i)*dv(i)/moment(0),v_m(i)*nitemp(i),v_m(i)*nitemp(i)*dv(i)/moment(1),dv(i)
 end do
 close(99)
 if (i_writesp==1) then
@@ -767,7 +775,7 @@ if (i_writesp==1) then
   end do
 end if
 
-1001 format(6E20.10)
+1001 format(7E20.10)
 1002 format(2E20.10)
 
 end subroutine pbe_output

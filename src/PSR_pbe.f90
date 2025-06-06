@@ -9,7 +9,7 @@ subroutine psr_pbe()
 ! Modified 25/06/2020
 !
 !**********************************************************************************************
-use pbe_mod, only: growth_function, jet_cl_model, amb_temp, amb_rho, current_temp, current_rho, p_water, tau_g, current_XH2O
+use pbe_mod, only: growth_function, jet_cl_model, amb_temp, amb_rho, current_temp, current_rho, p_water, tau_g, current_XH2O, dv, m
 
 implicit none
 
@@ -44,6 +44,9 @@ read(30,*) n_write
 close(30)
 
 if (growth_function==4) then
+   do i=1,m
+    ni(i) = ni(i) / dv(i)
+   end do
    call pbe_ice_read()
    current_temp = amb_temp
    current_rho = amb_rho
@@ -98,6 +101,9 @@ do i_step = 1,n_steps
   if (growth_function==4) then
     if (moment(0)==0) then
       call pbe_init(ni)
+      do i=1,m
+        ni(i) = ni(i) / dv(i)
+      end do
       call pbe_moments(ni,moment,meansize)
     !else 
       !write(*,*) 'moment(0) is no longer zero so ice growth starts'
