@@ -43,7 +43,7 @@ read(30,*) i_writesp
 read(30,*) n_write
 close(30)
 
-if (growth_function==4) then
+if (growth_function>=4) then
    do i=1,m
     ni(i) = ni(i) / dv(i)
    end do
@@ -61,7 +61,7 @@ current_time= 0.D0
 i_write = 0
 
 ! Update the thermodynamic state if ice growth and if jet centerline model is activated
-if ((growth_function==4).and.(jet_cl_model>0)) then
+if ((growth_function>=4).and.(jet_cl_model>0)) then
   if (jet_cl_model==1) then
     call pbe_ice_update(current_time, current_temp, current_rho)
   elseif (jet_cl_model==2) then
@@ -80,7 +80,7 @@ call PBE_moments(ni,moment,meansize)
 do i_step = 1,n_steps
   
   !Write temperature and growth timescale (tau_g) to output
-  if (growth_function==4) then
+  if (growth_function>=4) then
     write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O
   endif
 
@@ -98,7 +98,7 @@ do i_step = 1,n_steps
   ! Calculate moments
   call pbe_moments(ni,moment,meansize)
 
-  if (growth_function==4) then
+  if (growth_function>=4) then
     if (moment(0)==0) then
       call pbe_init(ni)
       do i=1,m
@@ -122,7 +122,7 @@ do i_step = 1,n_steps
   i_write = i_write + 1
 
   ! Update the thermodynamic state if ice growth and if jet centerline model is activated
-  if ((growth_function==4).and.(jet_cl_model>0)) then
+  if ((growth_function>=4).and.(jet_cl_model>0)) then
     if (jet_cl_model==1) then
       call pbe_ice_update(current_time, current_temp, current_rho)
     elseif (jet_cl_model==2) then
@@ -139,7 +139,7 @@ deallocate(ni)
 call PBE_deallocate()
 
 !Close ice ouptut file
-if (growth_function==4) then
+if (growth_function>=4) then
   close(999)
 endif   
 

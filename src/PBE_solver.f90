@@ -38,7 +38,7 @@ double precision niprime(m),nitemp(m)
 double precision k1(m),k2(m),k3(m),k4(m)
 
 !----------------------------------------------------------------------------------------------
-if (growth_function==4) then
+if (growth_function>=4) then
 
   !Eliminate the negative values of number density which are not physical - Luca 27/04/2025
   do i = 1,m
@@ -87,7 +87,7 @@ else if (solver_pbe == 3) then
 
 end if
 
-if (growth_function==4) then
+if (growth_function>=4) then
   do i = 1,m
 
     ni(i) = ni(i) / current_rho
@@ -183,7 +183,7 @@ if (growth_function>0) then
   end if
 end if
 
-if (growth_function==4) then
+if (growth_function>=4) then
   tau_g = tau_g_num / tau_g_den 
 endif
 

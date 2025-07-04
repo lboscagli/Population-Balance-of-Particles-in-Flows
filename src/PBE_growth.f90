@@ -55,7 +55,7 @@ else if (growth_function==2) then
   g_termr = g_coeff1*(v(index)**g_coeff2)
   g_terml = g_coeff1*(v(index-1)**g_coeff2)
 
-else if (growth_function==4) then
+else if (growth_function>=4) then
   ! Ice growth model (Karcher et al 1999)
   ! Luca Boscagli 25/04/205: adapted for CPMOD 
 
@@ -303,4 +303,7 @@ subroutine pbe_growth_ice(index, g_coeff1,g_coeff2)
 
 end subroutine pbe_growth_ice
 
-!-------------------------------------------------------------------------------
+
+        
+    
+    
