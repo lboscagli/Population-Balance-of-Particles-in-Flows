@@ -16,7 +16,7 @@ FLAGS = -O3 -ffree-line-length-none -cpp
 # FLAGS = -O0 -fcheck=all -g -fbacktrace -ffree-line-length-none -cpp
 
 # Code
-THERMO = thermo.o
+ICE = module_thermo.o module_ice_microphysics.o
 MODPBE = PBE_general.o PBE_discrete.o
 MAIN = CPMOD_pbe.o
 PBE = PBE_solver.o PBE_growth.o PBE_agg.o PBE_agg_kernels.o \
@@ -24,7 +24,7 @@ PBE_test.o PBE_frag.o
 PSR = PSR_pbe.o
 
 # Compilation order
-MODULES= $(MODPBE) $(THERMO)
+MODULES= $(MODPBE) $(ICE)
 OBJECTS= $(MODULES) $(MAIN) $(PBE) $(PSR)
 
 # Make options
