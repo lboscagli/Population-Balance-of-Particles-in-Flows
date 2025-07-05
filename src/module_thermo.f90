@@ -80,8 +80,11 @@ module thermo
   use constants
   use optimizer
   implicit none
-  public :: dv_cont, dv, rho_air, es, ka_cont, ka, sigma_w
+  public :: dv_cont, dv_corr, rho_air, es, ka_cont, ka_corr, sigma_w
   public :: Seq, Seq_approx, kohler_crit, critical_curve, r_eff
+
+  ! Temporary variables for minimization:
+  real(kind=8), save :: tmp_r_dry, tmp_T, tmp_kappa
 
 contains
 
@@ -94,7 +97,7 @@ contains
     Dv_c = 1.0e-4_8*(0.211_8/P_atm)*( (T/273.0_8)**1.94_8 )
   end function dv_cont
 
-  function dv(T, r, P, accom) result(Dv_nc)
+  function dv_corr(T, r, P, accom) result(Dv_nc)
     !! Compute water vapor diffusivity corrected for non-continuum effects.
     !! T [K], r [m], P [Pa], accom: condensation coefficient.
     !! Returns Dv_nc [m^2/s].
@@ -103,7 +106,7 @@ contains
     Dv_c = dv_cont(T, P)
     denom = 1.0_8+(Dv_c/(accom*r))*sqrt((2.0_8*3.141592653589793_8*Mw)/(R*T))
     Dv_nc = Dv_c/denom
-  end function dv
+  end function dv_corr
 
   function es(T_c) result(e_sat)
     !! Compute saturation vapor pressure over water at temperature T_c [C].
@@ -131,7 +134,7 @@ contains
     ka_c = 1.0e-3_8*(4.39_8+0.071_8*T)
   end function ka_cont
 
-  function ka(T, rho, r) result(ka_nc)
+  function ka_corr(T, rho, r) result(ka_nc)
     !! Compute thermal conductivity of air corrected for non-continuum effects.
     !! T [K], rho [kg/m^3], r [m].
     !! Returns ka_nc [J/m/s/K].
@@ -140,7 +143,7 @@ contains
     ka_c = ka_cont(T)
     denom = 1.0_8+(ka_c/(at*r*rho*Cp))*sqrt((2.0_8*3.141592653589793_8*Ma)/(R*T))
     ka_nc = ka_c/denom
-  end function ka
+  end function ka_corr
 
   function sigma_w(T) result(sigma)
     !! Compute surface tension of water at temperature T [K].
@@ -171,35 +174,34 @@ contains
     S_eq_approx = A - kappa*(r_dry**3)/(r**3)
   end function Seq_approx
 
+  function neg_Seq_fixed(r) result(fval)
+    real(kind=8), intent(in) :: r
+    real(kind=8) :: fval
+    fval = -1.0_8*Seq(r, tmp_r_dry, tmp_T, tmp_kappa)
+  end function neg_Seq_fixed
+
   subroutine kohler_crit(T, r_dry, kappa, approx, r_crit, s_crit)
     !! Compute Köhler critical radius and supersaturation for dry particle.
     !! T [K], r_dry [m], kappa [-].
     !! approx: logical - use approximate eqn.
-    !! r_crit, s_crit are returned.
+    !! r_crit, s_crit are returned.    
     real(kind=8), intent(in) :: T, r_dry, kappa
     logical, intent(in) :: approx
     real(kind=8), intent(out) :: r_crit, s_crit
     real(kind=8) :: A
-    interface
-      function neg_Seq(r) result(fval)
-        real(kind=8), intent(in) :: r
-        real(kind=8) :: fval
-      end function neg_Seq
-    end interface
-    contains
-      function neg_Seq(r) result(fval)
-        real(kind=8), intent(in) :: r
-        real(kind=8) :: fval
-        fval = -1.0_8*Seq(r, r_dry, T, kappa)
-      end function neg_Seq
-    end contains
+
     if (approx) then
-       A = (2.0_8*Mw*sigma_w(T))/(R*T*rho_w)
-       s_crit = sqrt((4.0_8*A**3)/(27.0_8*kappa*(r_dry**3)))
-       r_crit = sqrt((3.0_8*kappa*(r_dry**3))/A)
+      A = (2.0_8*Mw*sigma_w(T))/(R*T*rho_w)
+      s_crit = sqrt((4.0_8*A**3)/(27.0_8*kappa*(r_dry**3)))
+      r_crit = sqrt((3.0_8*kappa*(r_dry**3))/A)
     else
-       r_crit = fminbound(neg_Seq, r_dry, r_dry*1.0e4_8, 1.0e-10_8)
-       s_crit = Seq(r_crit, r_dry, T, kappa)
+      ! Set the module variables for the function
+      tmp_r_dry = r_dry
+      tmp_T = T
+      tmp_kappa = kappa
+      ! Call minimizer on neg_Seq_fixed
+      r_crit = fminbound(neg_Seq_fixed, r_dry, r_dry*1.0e4_8, 1.0e-10_8)
+      s_crit = Seq(r_crit, r_dry, T, kappa)
     end if
   end subroutine kohler_crit
 
