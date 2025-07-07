@@ -4,7 +4,7 @@ module constants
   public
   real(kind=8), parameter :: g = 9.81_8     !! gravitational acceleration [m/s^2]
   real(kind=8), parameter :: Cp = 1004.0_8  !! specific heat of dry air at const. pressure [J/kg/K]
-  real(kind=8), parameter :: L = 2.25e6_8   !! latent heat of vaporization [J/kg]
+  real(kind=8), parameter :: Lw = 2.25e6_8   !! latent heat of vaporization [J/kg]
   real(kind=8), parameter :: rho_w = 1000.0_8 !! density of water [kg/m^3]
   real(kind=8), parameter :: R = 8.314_8    !! universal gas constant [J/mol/K]
   real(kind=8), parameter :: Mw = 18.016_8/1.0e3_8 !! molar weight of water [kg/mol]
@@ -17,7 +17,6 @@ module constants
   real(kind=8), parameter :: at = 0.96_8    !! thermal accommodation coefficient [-]
   real(kind=8), parameter :: epsilon = 0.622_8 !! Mw/Ma [-]
 
-  integer, parameter :: N_STATE_VARS = 7
 end module constants
 
 

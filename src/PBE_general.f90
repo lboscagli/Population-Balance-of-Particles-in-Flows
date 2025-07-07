@@ -47,6 +47,8 @@ double precision N0
 double precision :: amb_temp, amb_p, amb_rho, RH, part_den_l, alpha_ice
 double precision :: jet_cl_model, diameter_jet, u_0j, T_0j, current_temp, current_rho, p_water, current_XH2O
 double precision :: tau_g
+double precision :: kappa !hygroscopicity
+double precision :: Loss_Sw !Saturation consumption
 
 integer m,grid_type
 integer i_gm,solver_pbe
@@ -248,6 +250,7 @@ subroutine pbe_ice_read()
   read(30,*) diameter_jet
   read(30,*) u_0j
   read(30,*) T_0j
+  read(30,*) kappa
   close(30)
 
   amb_rho = amb_p / amb_temp / (gascon / M_air) 
