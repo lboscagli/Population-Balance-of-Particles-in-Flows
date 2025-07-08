@@ -76,6 +76,7 @@ contains
     implicit none
     ! Input/output
     real, allocatable, intent(inout) :: Smw_time_series(:)
+    !real, intent(in) :: Smw_time_series(:)
     !real, allocatable, intent(inout) :: Smw_time_derivative(:)
     integer, intent(in) :: k
     real, intent(in) :: Smw, Loss_Sw

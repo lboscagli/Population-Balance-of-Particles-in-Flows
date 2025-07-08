@@ -87,8 +87,14 @@ do i_step = 1,n_steps
     !Compute and update saturation ratio
     call p_sat_liq_murphy_koop(p_sat_liq)
     Smw = amb_p*current_XH2O/p_sat_liq
-    !call saturation_ratio(Smw_time_series, i_step, dt, Smw, Loss_Sw)
-    write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw
+    call append_scalar(Smw_time_series, Smw)
+    
+    !Supersaturation consumption
+    if (i_step > 1) then
+      Smw_time_series(i_step) = Smw_time_series(i_step-1) + ((Smw_time_series(i_step)-Smw_time_series(i_step-1))/dt - Loss_Sw)*dt
+    endif
+
+    write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step)
   endif
 
   ! The following should be done if the kernel should be updated at each time step due to e.g. 
@@ -152,7 +158,7 @@ if (growth_function>=4) then
   close(999)
 endif   
 
-1001 format(8E20.10)
+1001 format(9E20.10)
 
 end subroutine psr_pbe
 
