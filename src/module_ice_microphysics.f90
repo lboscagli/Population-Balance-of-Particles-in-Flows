@@ -70,7 +70,7 @@ contains
   ! Luca Boscagli 07/07/2025
   !
   !**********************************************************************************************
-    use pbe_mod, only :current_temp, amb_p, RH, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model
+    use pbe_mod, only :current_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model
     use thermo
 
     implicit none
@@ -136,7 +136,7 @@ contains
   !**********************************************************************************************
   
     use pbe_mod, only :v0, v_m, m, dv !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
-    use pbe_mod, only :current_temp, amb_p, RH, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
+    use pbe_mod, only :current_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
     use thermo
 
     implicit none
@@ -196,7 +196,7 @@ contains
   !**********************************************************************************************
   
     use pbe_mod, only :v0, v_m, m, dv !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
-    use pbe_mod, only :current_temp, amb_p, RH, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
+    use pbe_mod, only :current_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
     use thermo
 
     implicit none
@@ -275,7 +275,7 @@ contains
     !use chemistry, only : nsp,fsc,temp,sumn,names,wm
     !use euler_part_interface
     use pbe_mod, only :v0, v_m, m, dv !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
-    use pbe_mod, only :current_temp, amb_p, RH, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, Loss_Sw, current_rho  
+    use pbe_mod, only :current_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, Loss_Sw, current_rho  
     use thermo
 
     implicit none
@@ -324,7 +324,7 @@ contains
 
     ! water vapor partial pressure
     if (jet_cl_model==1) then
-      p_water = p_water_sat_liq * RH
+      p_water = p_water_sat_liq !* G_mixing_line
     elseif (jet_cl_model==2) then
       p_water = amb_p * current_XH2O
     endif  

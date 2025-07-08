@@ -28,6 +28,7 @@ integer agg_kernel_update,n_pbe_grid
 
 ! Initialisation
 
+
 ! Initialise PBE
 call pbe_read(n_pbe_grid)
 allocate(ni(n_pbe_grid))
@@ -80,6 +81,9 @@ endif
 ! Write initial moments
 call PBE_moments(ni,moment,meansize)
 
+!Allocate array with supersaturation
+allocate(Smw_time_series(n_steps))
+
 do i_step = 1,n_steps
   
   !Write temperature and growth timescale (tau_g) to output
@@ -93,8 +97,8 @@ do i_step = 1,n_steps
     if (i_step > 1) then
       Smw_time_series(i_step) = Smw_time_series(i_step-1) + ((Smw_time_series(i_step)-Smw_time_series(i_step-1))/dt - Loss_Sw)*dt
     endif
-
     write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step)
+
   endif
 
   ! The following should be done if the kernel should be updated at each time step due to e.g. 

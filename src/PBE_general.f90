@@ -44,7 +44,7 @@ double precision g_coeff1,g_coeff2
 double precision nuc1
 double precision N0
 
-double precision :: amb_temp, amb_p, amb_rho, RH, part_den_l, alpha_ice, p_sat_liq
+double precision :: amb_temp, amb_p, amb_rho, G_mixing_line, part_den_l, alpha_ice, p_sat_liq
 double precision :: jet_cl_model, diameter_jet, u_0j, T_0j, current_temp, current_rho, p_water, current_XH2O
 double precision :: tau_g
 double precision :: kappa !hygroscopicity
@@ -244,7 +244,7 @@ subroutine pbe_ice_read()
   end do
   read(30,*) amb_p
   read(30,*) amb_temp
-  read(30,*) RH
+  read(30,*) G_mixing_line
   read(30,*) part_den_l
   read(30,*) alpha_ice
   read(30,*) jet_cl_model
