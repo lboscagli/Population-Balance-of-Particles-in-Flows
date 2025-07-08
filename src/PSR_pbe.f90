@@ -9,7 +9,7 @@ subroutine psr_pbe()
 ! Modified 25/06/2020
 !
 !**********************************************************************************************
-use pbe_mod, only: growth_function, jet_cl_model, amb_temp, amb_rho, current_temp, current_rho, p_water, tau_g, current_XH2O, dv, m
+use pbe_mod, only: growth_function, jet_cl_model, amb_temp, amb_rho, current_temp, current_rho, p_water, tau_g, current_XH2O, dv, m, Loss_Sw
 
 implicit none
 
@@ -81,7 +81,7 @@ do i_step = 1,n_steps
   
   !Write temperature and growth timescale (tau_g) to output
   if (growth_function>=4) then
-    write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O
+    write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw
   endif
 
   ! The following should be done if the kernel should be updated at each time step due to e.g. 
@@ -128,6 +128,8 @@ do i_step = 1,n_steps
     elseif (jet_cl_model==2) then
       call pbe_ice_update_LES(current_time, current_temp, current_rho, current_XH2O)
     endif
+
+    !call saturation_ratio(Smw_time_series, k, dt, Smw, Loss_Sw)
   endif
 
 end do
@@ -143,7 +145,7 @@ if (growth_function>=4) then
   close(999)
 endif   
 
-1001 format(6E20.10)
+1001 format(7E20.10)
 
 end subroutine psr_pbe
 

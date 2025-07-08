@@ -273,7 +273,7 @@ subroutine pbe_ice_update(time, jet_temp, jet_rho)
 
     double precision, intent(in)                  :: time
     double precision, intent(out)                  :: jet_temp, jet_rho
-    double precision :: epsilon, beta, x_m, r_0j, tau_m
+    double precision :: epsilon_t, beta, x_m, r_0j, tau_m
 
     double precision :: gascon=8314.3
     double precision :: M_air = 28.96
@@ -286,11 +286,11 @@ subroutine pbe_ice_update(time, jet_temp, jet_rho)
     r_0j = 0.5*diameter_jet 
     
     !Model constants
-    epsilon = 0.0285 ! dimensioless turbulent diffusivity (Tollmien, 1926)
+    epsilon_t = 0.0285 ! dimensioless turbulent diffusivity (Tollmien, 1926)
     beta = 0.9 ! Dilution parameter (Karcher, 1999)
     
     !Maximum distance over which central jet region is unaffected by entrainement
-    x_m = r_0j * (2.0/epsilon)**0.5
+    x_m = r_0j * (2.0/epsilon_t)**0.5
     
     !Mixing timescale
     tau_m = x_m / u_0j

@@ -11,7 +11,7 @@ module constants
   real(kind=8), parameter :: Ma = 28.96_8/1.0e3_8 !! molar weight of dry air [kg/mol]
   real(kind=8), parameter :: Rd = R/Ma      !! gas constant for dry air [J/(kg/K)]
   real(kind=8), parameter :: Rv = R/Mw      !! gas constant for water vapor [J/(kg/K)]
-  real(kind=8), parameter :: Dv = 3.0e-5_8  !! water vapor diffusivity in air [m^2/s]
+  real(kind=8), parameter :: Dv_w = 3.0e-5_8  !! water vapor diffusivity in air [m^2/s]
   real(kind=8), parameter :: ac = 1.0_8     !! condensation coefficient [-]
   real(kind=8), parameter :: Ka = 2.0e-2_8  !! thermal conductivity of air [J/m/s/K]
   real(kind=8), parameter :: at = 0.96_8    !! thermal accommodation coefficient [-]
