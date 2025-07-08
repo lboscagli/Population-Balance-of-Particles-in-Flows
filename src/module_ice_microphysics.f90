@@ -78,7 +78,8 @@ contains
     real, allocatable, intent(inout) :: Smw_time_series(:)
     !real, allocatable, intent(inout) :: Smw_time_derivative(:)
     integer, intent(in) :: k
-    real, intent(in) :: dt, Smw, Loss_Sw
+    real, intent(in) :: Smw, Loss_Sw
+    double precision, intent(in) :: dt
     real :: dSmwdt, Smw_new 
     !double precision :: p_sat_liq
     

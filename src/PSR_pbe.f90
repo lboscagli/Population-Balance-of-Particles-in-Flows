@@ -16,6 +16,7 @@ use ice_microphys_mod
 implicit none
 
 double precision, allocatable :: ni(:)
+real, allocatable :: Smw_time_series(:)
 
 double precision moment(0:1)
 double precision int_time,tin,current_time,meansize,dt
@@ -87,8 +88,7 @@ do i_step = 1,n_steps
     call p_sat_liq_murphy_koop(p_sat_liq)
     Smw = amb_p*current_XH2O/p_sat_liq
     !call saturation_ratio(Smw_time_series, i_step, dt, Smw, Loss_Sw)
-
-    write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw
+    write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw
   endif
 
   ! The following should be done if the kernel should be updated at each time step due to e.g. 
@@ -152,7 +152,7 @@ if (growth_function>=4) then
   close(999)
 endif   
 
-1001 format(7E20.10)
+1001 format(8E20.10)
 
 end subroutine psr_pbe
 
