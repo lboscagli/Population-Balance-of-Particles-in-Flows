@@ -9,7 +9,9 @@ subroutine psr_pbe()
 ! Modified 25/06/2020
 !
 !**********************************************************************************************
-use pbe_mod, only: growth_function, jet_cl_model, amb_temp, amb_rho, current_temp, current_rho, p_water, tau_g, current_XH2O, dv, m, Loss_Sw
+use pbe_mod, only: growth_function, jet_cl_model, amb_temp, amb_rho, current_temp, current_rho, p_water, tau_g, current_XH2O, dv, m
+use pbe_mod, only: Loss_Sw, Smw, p_sat_liq, amb_p
+use ice_microphys_mod
 
 implicit none
 
@@ -81,6 +83,11 @@ do i_step = 1,n_steps
   
   !Write temperature and growth timescale (tau_g) to output
   if (growth_function>=4) then
+    !Compute and update saturation ratio
+    call p_sat_liq_murphy_koop(p_sat_liq)
+    Smw = amb_p*current_XH2O/p_sat_liq
+    !call saturation_ratio(Smw_time_series, i_step, dt, Smw, Loss_Sw)
+
     write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw
   endif
 

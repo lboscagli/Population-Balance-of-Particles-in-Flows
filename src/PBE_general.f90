@@ -44,11 +44,12 @@ double precision g_coeff1,g_coeff2
 double precision nuc1
 double precision N0
 
-double precision :: amb_temp, amb_p, amb_rho, RH, part_den_l, alpha_ice
+double precision :: amb_temp, amb_p, amb_rho, RH, part_den_l, alpha_ice, p_sat_liq
 double precision :: jet_cl_model, diameter_jet, u_0j, T_0j, current_temp, current_rho, p_water, current_XH2O
 double precision :: tau_g
 double precision :: kappa !hygroscopicity
 double precision :: Loss_Sw !Saturation consumption
+double precision :: Smw !Saturation ratio along the mixingline with no particles
 
 integer m,grid_type
 integer i_gm,solver_pbe

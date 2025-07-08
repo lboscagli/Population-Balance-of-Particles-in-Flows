@@ -133,8 +133,8 @@ contains
   !
   !**********************************************************************************************
   
-    use pbe_mod, only :v0, v_m, m !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
-    use pbe_mod, only :current_temp, amb_p, RH, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw
+    use pbe_mod, only :v0, v_m, m, dv !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
+    use pbe_mod, only :current_temp, amb_p, RH, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
     use thermo
 
     implicit none
@@ -159,11 +159,7 @@ contains
 
     !Compute equilibrium saturation ratio over the particle
     S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
-    S_v = S_v + 1.0
-
-    ! Compute saturation ratio at this step - this is an input
-    !call saturation_ratio(Smw_time_series, Smw_time_derivative, k, dt)
-    !S_e = Smw_time_series(size(Smw_time_series))    
+    S_v = S_v + 1.0   
 
     ! Saturation presure over liquid
     call p_sat_liq_murphy_koop(p_water_sat_liq)
@@ -177,7 +173,7 @@ contains
     g_coeff2 = 2.0 / 3.0 
     if (drdt .ge. 0) then
        g_coeff1 = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
-       Loss_Sw = Loss_Sw + amb_p * pi * rho_w / rho_air(current_temp, amb_p, amb_p/p_water_sat_liq) * (ni(index) * r_part**2 * drdt)
+       Loss_Sw = Loss_Sw + (amb_p/p_water_sat_liq/epsilon) * pi * rho_w / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
       else
        g_coeff1 = 0.0
     endif
@@ -185,7 +181,7 @@ contains
   
   end subroutine pbe_droplet_growth  
 
-  subroutine pbe_ice_growth(index, g_coeff1,g_coeff2)
+  subroutine pbe_ice_growth(index, S_e, ni, g_coeff1,g_coeff2)
 
   !**********************************************************************************************
   !
@@ -197,14 +193,16 @@ contains
   !
   !**********************************************************************************************
   
-    use pbe_mod, only :v0, v_m !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
-    use pbe_mod, only :current_temp, amb_p, RH, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model 
-    
+    use pbe_mod, only :v0, v_m, m, dv !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
+    use pbe_mod, only :current_temp, amb_p, RH, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
+    use thermo
+
     implicit none
   
-    integer, intent(in)  :: index
+    integer, intent(in)  :: index, S_e
+    double precision, dimension(m), intent(in) :: ni
     double precision, intent(out)              :: g_coeff1, g_coeff2
-
+    
     double precision :: p_water_sat_ice,p_water_sat_liq !,RH,amb_temp,amb_p,amb_rho
     double precision :: M_water !,M_air, X_water
     double precision :: r_part,r_nuc,den_ice
@@ -316,14 +314,12 @@ contains
     ! part_den_l = 1550.0				! Density of particles on the left side of the PSD (kg/m^3)
     ! v0 = v_nuc ! Nuclei volume  
     
+    ! saturated (relative to liquid) water vapour partial pressure 
     call p_sat_liq_murphy_koop(p_water_sat_liq)
-    !p_water_sat_liq = exp(54.842763 - 6763.22 / current_temp - 4.21 * log(current_temp) &
-    !+ 0.000367 * current_temp + tanh(0.0415 * (current_temp - 218.8)) &
-    !* (53.878 - 1331.22 / current_temp - 9.44523 * log(current_temp) &
-    !+ 0.014025 * current_temp))
-    
-    !write(*,*) 'p_water_sat_liq: ',p_water_sat_liq
-  
+
+    ! saturated (relative to ice) water vapour partial pressure 
+    call p_sat_ice_murphy_koop(p_water_sat_ice)
+
     ! water vapor partial pressure
     if (jet_cl_model==1) then
       p_water = p_water_sat_liq * RH
@@ -331,43 +327,45 @@ contains
       p_water = amb_p * current_XH2O
     endif  
     
-    !write(*,*) 'p_water: ',p_water
+    ! Constant ice particle density 
+    den_ice = 917.0  
   
-    ! saturated (relative to ice) water vapour partial pressure 
-    call p_sat_ice_murphy_koop(p_water_sat_ice)
-    !p_water_sat_ice = exp(9.550426 - 5723.265 / current_temp + 3.53068 * log(current_temp) &
-    !                  - 0.00728332 * current_temp) 
-    
-    !write(*,*) 'p_water_sat_ice: ',p_water_sat_ice
+    ! radius of spherically assumed particles computed from the volume at the middle of each bin v_m
+    r_part = (3.0 / (4.0 * pi) * v_m(index))**(1.0/3.0)
+    ! radius of the nuclei (samllest particle volume) - this is constant  
+    r_nuc = (3.0 / (4.0 * pi) * v0)**(1.0/3.0)        
   
-    den_ice = 917.0 ! constant ice particle density (neglecting soot core) 
-  
-    r_part = (3.0 / (4.0 * pi) * v_m(index))**(1.0/3.0)  ! radius of spherically assumed particles computed from the volume at the middle of each bin v_m
-    r_nuc = (3.0 / (4.0 * pi) * v0)**(1.0/3.0)        ! radius of the nuclei (samllest particle volume) - this is constant
-  
-    !write(*,*) 'r_nuc: ',r_nuc
+    ! particle density
     part_den = (part_den_l * r_nuc**3.0 + den_ice * &
                             (r_part**3.0 - r_nuc**3.0)) / r_part**3.0  ! particle density
   
-    !write(*,*) 'part_den: ',r_nuc
+    ! diffusion coefficient of water vapor molecules in air
+    dif_water = 2.11D-5 * 101325.0 / amb_p * (current_temp / 273.15)**1.94   
+    ! water vapor mean free path
+    lambda_water = 6.15D-8 * 101325.0 / amb_p * current_temp / 273.15       
   
-    dif_water = 2.11D-5 * 101325.0 / amb_p * (current_temp / 273.15)**1.94  ! diffusion coefficient of water vapor molecules in air 
-    lambda_water = 6.15D-8 * 101325.0 / amb_p * current_temp / 273.15       ! water vapor mean free path
+    ! knudsen number
+    Kn = lambda_water / r_part   
+    ! deposition coefficient. Higher values of alpha speed up the deposition rate
+    ! alpha_ice = 0.1 
   
-    Kn = lambda_water / r_part  ! knudsen number 
-    ! alpha_ice = 0.1 ! deposition coefficient. Higher values of alpha speed up the deposition rate
+    ! collision factor (G), accounts for transition from gas kinetic energy (G->1 for Kn->0) to continuum regime (G->0 for Kn->1)
+    coll_factor = 1.0 / (1.0 / (1.0 + Kn) + 4.0 / 3.0 * Kn / alpha_ice) 
   
-    coll_factor = 1.0 / (1.0 / (1.0 + Kn) + 4.0 / 3.0 * Kn / alpha_ice) ! collision factor (G), accounts for transition from gas kinetic energy (G->1 for Kn->0) to continuum regime (G->0 for Kn->1)
-  
+    ! nominator of dr/dt 
+    ! [ M_water * p_water_sat_ice / (gascon * current_temp)]: saturated (relative to ice) water vapor density 
+    ! (considering compressibility factor approx = 1)
+    ! This is calling gascon = 8314.3 J/K/kg (in module_chemistry.f90)
+    ! gascon/M_water is the specific gas constant for water vapor, i.e., Rv = 461.52 J/K/kg    
+
     fornow = dif_water * coll_factor * M_water * (p_water - p_water_sat_ice) &
-            / (gascon * current_temp)   ! nominator of dr/dt 
-                                    ! [ M_water * p_water_sat_ice / (gascon * current_temp)]: saturated (relative to ice) water vapor density (considering compressibility factor approx = 1)
-                                    ! This is calling gascon = 8314.3 J/K/kg (in module_chemistry.f90)
-                                    ! gascon/M_water is the specific gas constant for water vapor, i.e., Rv = 461.52 J/K/kg
+            / (gascon * current_temp)   
+
                                     
+    ! Change in particle radius over time
+    drdt = fornow / (part_den * r_part) 
   
-    drdt = fornow / (part_den * r_part) ! change in particle radius over time
-  
+    ! Compute coefficients needed for growth and supersaturation consumption
     g_coeff2 = 2.0 / 3.0 
     if (p_water.ge.p_water_sat_liq) then 
       g_coeff1 = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
