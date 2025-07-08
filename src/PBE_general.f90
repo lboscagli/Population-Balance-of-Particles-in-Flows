@@ -44,7 +44,7 @@ double precision g_coeff1,g_coeff2
 double precision nuc1
 double precision N0
 
-double precision :: amb_temp, amb_p, amb_rho, G_mixing_line, part_den_l, alpha_ice, p_sat_liq
+double precision :: amb_temp, amb_p, amb_rho, G_mixing_line, part_den_l, alpha_ice, p_sat_liq, p_sat_ice
 double precision :: jet_cl_model, diameter_jet, u_0j, T_0j, current_temp, current_rho, p_water, current_XH2O
 double precision :: tau_g
 double precision :: kappa !hygroscopicity
@@ -305,8 +305,15 @@ subroutine pbe_ice_update(time, jet_temp, jet_rho)
     endif
     jet_rho = amb_p / jet_temp / (gascon / M_air)
 
+    ! Compute saturation ratio based on user defined slope of mixing line (G_mixing_line) 
+    p_sat_ice = EXP(9.550426 - 5723.265/jet_temp + 3.53068 * LOG(jet_temp) -  0.00728332 * jet_temp )
+    p_sat_liq = (EXP(54.842763 - 6763.22/jet_temp - 4.210 * LOG(jet_temp) + 0.000367 * jet_temp + TANH(0.0415 * (jet_temp - 218.8)) * \
+    (53.878 - 1331.22/jet_temp - 9.44523 * LOG(jet_temp) + 0.014025 * jet_temp)))
     
-
+    p_water = 1.0 * (EXP(9.550426 - 5723.265/amb_temp + 3.53068 * LOG(amb_temp) -  0.00728332 * amb_temp)) ! this is assuming that at ambient condition we are saturated relative to ice, hence 1.0
+    
+    Smw = ((p_water + G_mixing_line * (jet_temp - amb_temp)) / p_sat_liq) - 1
+    
 
   end subroutine pbe_ice_update
 

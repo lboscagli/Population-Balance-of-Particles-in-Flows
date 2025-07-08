@@ -324,7 +324,7 @@ contains
 
     ! water vapor partial pressure
     if (jet_cl_model==1) then
-      p_water = p_water_sat_liq !* G_mixing_line
+      p_water = p_water_sat_liq * G_mixing_line
     elseif (jet_cl_model==2) then
       p_water = amb_p * current_XH2O
     endif  
