@@ -50,7 +50,11 @@ double precision :: tau_g
 double precision :: kappa !hygroscopicity
 real :: Loss_Sw !Saturation consumption
 real :: Smw !Saturation ratio along the mixingline with no particles
+real(kind=8) :: S_vc !Critical saturation ratio for aerosol droplet with specific dry radius and hygroscopicity
+real(kind=8) :: r_vc !Critical radius for aerosol particle to activate - this is dummy as we actually specify a wet radius for the nuclei 
 real, allocatable :: Smw_time_series(:)
+
+logical :: activation_logical !Water drople activation flag (initialize as .false. and then check saturation)
 
 integer m,grid_type
 integer i_gm,solver_pbe

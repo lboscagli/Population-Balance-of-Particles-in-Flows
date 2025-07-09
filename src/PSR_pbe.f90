@@ -10,7 +10,7 @@ subroutine psr_pbe()
   !
   !**********************************************************************************************
   use pbe_mod, only: growth_function, jet_cl_model, amb_temp, amb_rho, current_temp, current_rho, p_water, tau_g, current_XH2O, dv, m
-  use pbe_mod, only: Loss_Sw, Smw, p_sat_liq, amb_p, G_mixing_line, Smw_time_series, step_update
+  use pbe_mod, only: Loss_Sw, Smw, p_sat_liq, amb_p, G_mixing_line, Smw_time_series, step_update, activation_logical
   use ice_microphys_mod
   
   implicit none
@@ -58,7 +58,7 @@ subroutine psr_pbe()
      open(999,file='pbe/ice_jet_temperature.out')
   endif
   
-  
+
   ! Initialise PSR integration
   n_steps = int_time/dt
   current_time= 0.D0
@@ -67,6 +67,10 @@ subroutine psr_pbe()
   !Allocate array with supersaturation
   allocate(Smw_time_series(1:n_steps))
   step_update = 0
+  
+  !Initialize logical for droplet activation
+  activation_logical = .false.
+
   ! Update the thermodynamic state if ice growth and if jet centerline model is activated
   if ((growth_function>=4).and.(jet_cl_model>0)) then
     if (jet_cl_model==1) then
@@ -108,8 +112,11 @@ subroutine psr_pbe()
       p_water = Smw_time_series(i_step) * p_sat_liq
 
       !Write to output file
-      write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step)
-  
+      if (activation_logical) then
+        write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),1.0
+      else
+        write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),0.0
+      endif
     endif
   
     ! The following should be done if the kernel should be updated at each time step due to e.g. 
@@ -173,7 +180,7 @@ subroutine psr_pbe()
     close(999)
   endif   
   
-  1001 format(9E20.10)
+  1001 format(10E20.10)
   
   end subroutine psr_pbe
   

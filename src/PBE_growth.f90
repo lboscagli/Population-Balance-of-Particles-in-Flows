@@ -21,6 +21,7 @@ subroutine growth_tvd(ni,index,growth_source,G_term_m)
 
 use pbe_mod
 use ice_microphys_mod
+use thermo
 
 implicit none
 
@@ -57,19 +58,31 @@ else if (growth_function==2) then
   g_terml = g_coeff1*(v(index-1)**g_coeff2)
 
 else if (growth_function>=4) then
-  ! Ice growth model (Karcher et al 1996)
-  ! Luca Boscagli 25/04/205: adapted for CPMOD 
+  ! Ice growth model
 
   ! compute g_coeff1 and g_coeff2 from kinetic growth model
   if (p_water .ge. p_sat_liq) then !SAC criterion
 
+    if (activation_logical) then 
+      g_coeff1 = 0.0
+      g_coeff2 = 0.0
+    else
+      call kohler_crit(current_temp, (3.0 / (4.0 * 3.141592653589793E+00) * v0)**(1.0/3.0), kappa, .true., r_vc, S_vc)
+      S_vc = S_vc + 1.0
+      if (Smw_time_series(step_update) .ge. S_vc) then
+        activation_logical = .true.
+      else
+        g_coeff1 = 0.0
+        g_coeff2 = 0.0
+      endif
+    endif
+
     !Droplet activation and growth based on Ponsonby et al. 2025
     !call pbe_droplet_growth(index, ni, g_coeff1,g_coeff2)
-    !write(*,*) 'Ponsonby et al.',g_coeff1
-
+    
     !depositional growth model activation (Karcher et al. 1996)
     call pbe_depositional_growth_ice(index,ni,g_coeff1,g_coeff2)
-    !write(*,*) 'Karcher et al.',g_coeff1
+
     
   else
     g_coeff1 =0.0

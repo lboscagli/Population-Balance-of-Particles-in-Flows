@@ -129,7 +129,7 @@ contains
   !**********************************************************************************************
   
     use pbe_mod, only :v0, v_m, m, dv !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
-    use pbe_mod, only :current_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
+    use pbe_mod, only :current_temp, amb_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
     use thermo
 
     implicit none
@@ -144,7 +144,7 @@ contains
     double precision :: part_den !, part_den_l, part_den_r
     double precision :: Fd, Fk
     real,parameter :: pi = 3.141592653589793E+00
-    real(kind=8) :: accom=1.0
+    real(kind=8) :: accom=1.0, r_crit, s_crit
     double precision :: gascon=8314.3
     
 
@@ -153,14 +153,19 @@ contains
     r_nuc = (3.0 / (4.0 * pi) * v0)**(1.0/3.0)        ! radius of the nuclei (samllest particle volume) - this is constant
 
     !Compute equilibrium saturation ratio over the particle
-    S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
-    S_v = S_v + 1.0   
+    !S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+    !S_v = S_v + 1.0   
+    call kohler_crit(current_temp, r_nuc, kappa, .true., r_crit, s_crit)
+    S_v = s_crit + 1.0
+     
 
     ! Saturation presure over liquid
     call p_sat_liq_murphy_koop(p_water_sat_liq)
 
-    ! Saturation ratio along the plume
-    S_e = p_water/p_water_sat_liq
+    ! Enivoronmental saturation ratio
+    ! this is assuming that at ambient condition we are saturated relative to ice, hence 1.0
+    S_e = (1.0 * (EXP(9.550426 - 5723.265/amb_temp + 3.53068 * LOG(amb_temp) -  0.00728332 * amb_temp))) / p_water_sat_liq 
+
 
     !Compute growth coefficient G=1/(Fk+Fd) based on Rogers and Yau (1996)
     Fk = Lw*rho_w/(4 * ka_corr(current_temp, part_den, r_part) * current_temp) * (Lw*Mw/(gascon*current_temp) - 1.0) !thermodynamic term associated to heat conduction
@@ -168,13 +173,13 @@ contains
 
     drdt = (1.0 / (Fk + Fd)) * (1 / r_part) * (S_e - S_v) 
   
-    write(*,*) 'S_v',S_v
-    write(*,*) 'S_e',S_e
+    !write(*,*) 'S_v',S_v
+    !write(*,*) 'S_e',S_e
 
     g_coeff2 = 2.0 / 3.0 
     if (drdt .ge. 0) then
        g_coeff1 = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
-       Loss_Sw = Loss_Sw + (amb_p/p_water_sat_liq/epsilon) * pi * rho_w / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
+       Loss_Sw = Loss_Sw + (amb_p/p_water_sat_liq/epsilon_fluid) * pi * rho_w / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
     else
        g_coeff1 = 0.0
     endif
@@ -364,7 +369,7 @@ contains
     g_coeff2 = 2.0 / 3.0 
     if (drdt .ge. 0) then
       g_coeff1 = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
-      Loss_Sw = Loss_Sw + (amb_p/p_water_sat_liq/epsilon) * pi * part_den / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
+      Loss_Sw = Loss_Sw + (amb_p/p_water_sat_liq/epsilon_fluid) * pi * part_den / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
     else
        g_coeff1 = 0.0
     endif    

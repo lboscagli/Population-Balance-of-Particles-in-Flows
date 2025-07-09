@@ -15,7 +15,7 @@ module constants
   real(kind=8), parameter :: ac = 1.0_8     !! condensation coefficient [-]
   real(kind=8), parameter :: Ka = 2.0e-2_8  !! thermal conductivity of air [J/m/s/K]
   real(kind=8), parameter :: at = 0.96_8    !! thermal accommodation coefficient [-]
-  real(kind=8), parameter :: epsilon = 0.622_8 !! Mw/Ma [-]
+  real(kind=8), parameter :: epsilon_fluid = 0.622_8 !! Mw/Ma [-]
 
 end module constants
 
