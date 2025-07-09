@@ -84,13 +84,6 @@ contains
     real :: dSmwdt, Smw_new 
     !double precision :: p_sat_liq
     
-
-    !if (jet_cl_model==1) then
-    !  Smw = RH
-    !elseif (jet_cl_model==2) then
-    !  call p_sat_liq_murphy_koop(p_sat_liq)
-    !  Smw = amb_p * current_XH2O / p_sat_liq
-    !endif 
     if (k .le. 1) then
       ! Append new value for Smw time series
       call append_scalar(Smw_time_series, Smw) 
@@ -122,7 +115,7 @@ contains
     call move_alloc(tmp, arr)
   end subroutine append_scalar
 
-  subroutine pbe_droplet_growth(index, S_e, ni, g_coeff1,g_coeff2)
+  subroutine pbe_droplet_growth(index, ni, g_coeff1,g_coeff2)
 
   !**********************************************************************************************
   !
@@ -141,11 +134,11 @@ contains
 
     implicit none
   
-    integer, intent(in)  :: index, S_e
+    integer, intent(in)  :: index
     double precision, dimension(m), intent(in) :: ni
     double precision, intent(out)              :: g_coeff1, g_coeff2
 
-    double precision :: p_water_sat_ice,p_water_sat_liq, S_v !,RH,amb_temp,amb_p,amb_rho
+    double precision :: p_water_sat_ice,p_water_sat_liq, S_v, S_e !,RH,amb_temp,amb_p,amb_rho
     double precision :: r_part,r_nuc
     double precision :: drdt
     double precision :: part_den !, part_den_l, part_den_r
@@ -166,20 +159,27 @@ contains
     ! Saturation presure over liquid
     call p_sat_liq_murphy_koop(p_water_sat_liq)
 
+    ! Saturation ratio along the plume
+    S_e = p_water/p_water_sat_liq
+
     !Compute growth coefficient G=1/(Fk+Fd) based on Rogers and Yau (1996)
     Fk = Lw*rho_w/(4 * ka_corr(current_temp, part_den, r_part) * current_temp) * (Lw*Mw/(gascon*current_temp) - 1.0) !thermodynamic term associated to heat conduction
     Fd = rho_w * gascon * current_temp / (4 * Mw * dv_corr(current_temp, r_part, amb_p, accom) * p_water_sat_liq) !term associated with vapor diffusion
 
     drdt = (1.0 / (Fk + Fd)) * (1 / r_part) * (S_e - S_v) 
   
+    write(*,*) 'S_v',S_v
+    write(*,*) 'S_e',S_e
+
     g_coeff2 = 2.0 / 3.0 
     if (drdt .ge. 0) then
        g_coeff1 = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
        Loss_Sw = Loss_Sw + (amb_p/p_water_sat_liq/epsilon) * pi * rho_w / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
-      else
+    else
        g_coeff1 = 0.0
     endif
 
+    
   
   end subroutine pbe_droplet_growth  
 
@@ -321,14 +321,7 @@ contains
 
     ! saturated (relative to ice) water vapour partial pressure 
     call p_sat_ice_murphy_koop(p_water_sat_ice)
-
-    ! water vapor partial pressure
-    if (jet_cl_model==1) then
-      p_water = p_water_sat_liq * G_mixing_line
-    elseif (jet_cl_model==2) then
-      p_water = amb_p * current_XH2O
-    endif  
-    
+     
     ! Constant ice particle density 
     den_ice = 917.0  
   
@@ -348,7 +341,7 @@ contains
   
     ! knudsen number
     Kn = lambda_water / r_part   
-    ! deposition coefficient. Higher values of alpha speed up the deposition rate
+    ! deposition coefficient. Higher values of alpha speed up the deposition rate - user input in CPMOD
     ! alpha_ice = 0.1 
   
     ! collision factor (G), accounts for transition from gas kinetic energy (G->1 for Kn->0) to continuum regime (G->0 for Kn->1)
@@ -369,13 +362,12 @@ contains
   
     ! Compute coefficients needed for growth and supersaturation consumption
     g_coeff2 = 2.0 / 3.0 
-    if (p_water.ge.p_water_sat_liq) then 
+    if (drdt .ge. 0) then
       g_coeff1 = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
       Loss_Sw = Loss_Sw + (amb_p/p_water_sat_liq/epsilon) * pi * part_den / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
     else
-      g_coeff1 = 0.0
-    endif  
-    
+       g_coeff1 = 0.0
+    endif    
   
   !! Luca: the section below is not needed for CPMOD standalone (no coupling with BOFFIN)
   !  dmdt = 4.0 * pi * r_part * fornow

@@ -10,13 +10,13 @@ subroutine psr_pbe()
   !
   !**********************************************************************************************
   use pbe_mod, only: growth_function, jet_cl_model, amb_temp, amb_rho, current_temp, current_rho, p_water, tau_g, current_XH2O, dv, m
-  use pbe_mod, only: Loss_Sw, Smw, p_sat_liq, amb_p, G_mixing_line
+  use pbe_mod, only: Loss_Sw, Smw, p_sat_liq, amb_p, G_mixing_line, Smw_time_series, step_update
   use ice_microphys_mod
   
   implicit none
   
   double precision, allocatable :: ni(:)
-  real, allocatable :: Smw_time_series(:)
+  !real, allocatable :: Smw_time_series(:)
   
   double precision moment(0:1)
   double precision int_time,tin,current_time,meansize,dt
@@ -63,7 +63,10 @@ subroutine psr_pbe()
   n_steps = int_time/dt
   current_time= 0.D0
   i_write = 0
-  
+
+  !Allocate array with supersaturation
+  allocate(Smw_time_series(1:n_steps))
+  step_update = 0
   ! Update the thermodynamic state if ice growth and if jet centerline model is activated
   if ((growth_function>=4).and.(jet_cl_model>0)) then
     if (jet_cl_model==1) then
@@ -81,21 +84,18 @@ subroutine psr_pbe()
   ! Write initial moments
   call PBE_moments(ni,moment,meansize)
   
-  !Allocate array with supersaturation
-  allocate(Smw_time_series(1:n_steps))
-  
   do i_step = 1,n_steps
-    
+    step_update = i_step
     !Write temperature and growth timescale (tau_g) to output
     if (growth_function>=4) then
       !Compute and update saturation ratio based on the input data
       call p_sat_liq_murphy_koop(p_sat_liq)
       
-      if (jet_cl_model .eq. 1) then
-        Smw = G_mixing_line ! this is just a place-holder
-      elseif (jet_cl_model .eq. 2) then
-        Smw = amb_p*current_XH2O/p_sat_liq
-      endif
+      !if (jet_cl_model .eq. 1) then
+      !  Smw = G_mixing_line ! this is just a place-holder
+      !elseif (jet_cl_model .eq. 2) then
+      !  Smw = amb_p*current_XH2O/p_sat_liq
+      !endif
 
       !Append to array
       !call append_scalar(Smw_time_series, Smw)
@@ -105,6 +105,7 @@ subroutine psr_pbe()
       if (i_step > 1) then
         Smw_time_series(i_step) = Smw_time_series(i_step-1) + ((Smw_time_series(i_step)-Smw_time_series(i_step-1))/dt - Loss_Sw)*dt
       endif   
+      p_water = Smw_time_series(i_step) * p_sat_liq
 
       !Write to output file
       write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step)

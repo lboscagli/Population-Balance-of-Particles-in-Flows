@@ -50,6 +50,7 @@ double precision :: tau_g
 double precision :: kappa !hygroscopicity
 real :: Loss_Sw !Saturation consumption
 real :: Smw !Saturation ratio along the mixingline with no particles
+real, allocatable :: Smw_time_series(:)
 
 integer m,grid_type
 integer i_gm,solver_pbe
@@ -58,6 +59,7 @@ integer agg_kernel
 integer growth_function
 integer max_nuc
 integer order_of_gq
+integer step_update
 
 end module pbe_mod
 
@@ -274,7 +276,7 @@ subroutine pbe_ice_update(time, jet_temp, jet_rho)
 
     double precision, intent(in)                  :: time
     double precision, intent(out)                  :: jet_temp, jet_rho
-    double precision :: epsilon_t, beta, x_m, r_0j, tau_m
+    double precision :: epsilon_t, beta, x_m, r_0j, tau_m, p_water_amb
 
     double precision :: gascon=8314.3
     double precision :: M_air = 28.96
@@ -310,9 +312,18 @@ subroutine pbe_ice_update(time, jet_temp, jet_rho)
     p_sat_liq = (EXP(54.842763 - 6763.22/jet_temp - 4.210 * LOG(jet_temp) + 0.000367 * jet_temp + TANH(0.0415 * (jet_temp - 218.8)) * \
     (53.878 - 1331.22/jet_temp - 9.44523 * LOG(jet_temp) + 0.014025 * jet_temp)))
     
-    p_water = 1.0 * (EXP(9.550426 - 5723.265/amb_temp + 3.53068 * LOG(amb_temp) -  0.00728332 * amb_temp)) ! this is assuming that at ambient condition we are saturated relative to ice, hence 1.0
+    ! Water vapor partial pressure at ambient condition
+    p_water_amb = 1.0 * (EXP(9.550426 - 5723.265/amb_temp + 3.53068 * LOG(amb_temp) -  0.00728332 * amb_temp)) ! this is assuming that at ambient condition we are saturated relative to ice, hence 1.0
     
-    Smw = ((p_water + G_mixing_line * (jet_temp - amb_temp)) / p_sat_liq) - 1
+    !Saturation ratio along the mixing line
+    Smw = ((p_water_amb + G_mixing_line * (jet_temp - amb_temp)) / p_sat_liq)
+
+    if (step_update .eq. 0) then
+      !Water vapor partial pressure along the mixing line
+      p_water = Smw*p_sat_liq
+    else
+      p_water = Smw_time_series(step_update)*p_sat_liq
+    endif
     
 
   end subroutine pbe_ice_update
@@ -359,7 +370,17 @@ subroutine pbe_ice_update(time, jet_temp, jet_rho)
       
       !Density
       jet_rho = amb_p / jet_temp / (gascon / M_air)
+
+      !Water vapor partial pressure
+      p_water = amb_p*jet_XH2O
   
+      !Saturation pressure relative to ice and liquid
+      p_sat_ice = EXP(9.550426 - 5723.265/jet_temp + 3.53068 * LOG(jet_temp) -  0.00728332 * jet_temp )
+      p_sat_liq = (EXP(54.842763 - 6763.22/jet_temp - 4.210 * LOG(jet_temp) + 0.000367 * jet_temp + TANH(0.0415 * (jet_temp - 218.8)) * \
+      (53.878 - 1331.22/jet_temp - 9.44523 * LOG(jet_temp) + 0.014025 * jet_temp)))
+
+      !Saturation ratio
+      Smw = p_water / p_sat_liq
   
     end subroutine pbe_ice_update_LES
   

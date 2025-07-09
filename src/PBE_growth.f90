@@ -61,8 +61,20 @@ else if (growth_function>=4) then
   ! Luca Boscagli 25/04/205: adapted for CPMOD 
 
   ! compute g_coeff1 and g_coeff2 from kinetic growth model
-  call pbe_depositional_growth_ice(index,ni,g_coeff1,g_coeff2)
-  
+  if (p_water .ge. p_sat_liq) then !SAC criterion
+
+    !Droplet activation and growth based on Ponsonby et al. 2025
+    !call pbe_droplet_growth(index, ni, g_coeff1,g_coeff2)
+    !write(*,*) 'Ponsonby et al.',g_coeff1
+
+    !depositional growth model activation (Karcher et al. 1996)
+    call pbe_depositional_growth_ice(index,ni,g_coeff1,g_coeff2)
+    !write(*,*) 'Karcher et al.',g_coeff1
+    
+  else
+    g_coeff1 =0.0
+    g_coeff2 =0.0
+  endif
 
 !  For debug  
 !  if (index<5) then
