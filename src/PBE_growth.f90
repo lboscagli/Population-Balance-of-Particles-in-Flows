@@ -59,13 +59,27 @@ else if (growth_function==2) then
 
 else if (growth_function>=4) then
   ! Ice growth model
-
   ! compute g_coeff1 and g_coeff2 from kinetic growth model
-  if (p_water .ge. p_sat_liq) then !SAC criterion
 
+  if (growth_function==4) then
+    !Depositional growth model activation (Karcher et al. 1996)
+    if (p_water .ge. p_sat_liq) then !SAC criterion
+      call pbe_depositional_growth_ice(index,ni,g_coeff1,g_coeff2)  
+    else
+      g_coeff1 =0.0
+      g_coeff2 =0.0
+    endif
+  elseif (growth_function==5) then
+    !Droplet activation and growth based on Ponsonby et al. 2025
     if (activation_logical) then 
-      g_coeff1 = 0.0
-      g_coeff2 = 0.0
+      if ((p_water .ge. p_sat_liq) .and. (p_water .ge. p_sat_ice)) then
+        call pbe_droplet_growth(index, ni, g_coeff1,g_coeff2)
+      elseif ((p_water .le. p_sat_liq) .and. (p_water .ge. p_sat_ice)) then
+        call pbe_depositional_growth_ice(index, ni, g_coeff1,g_coeff2) 
+      else
+        g_coeff1 = 0.0
+        g_coeff2 = 0.0  
+      endif
     else
       call kohler_crit(current_temp, (3.0 / (4.0 * 3.141592653589793E+00) * v0)**(1.0/3.0), kappa, .true., r_vc, S_vc)
       S_vc = S_vc + 1.0
@@ -76,24 +90,7 @@ else if (growth_function>=4) then
         g_coeff2 = 0.0
       endif
     endif
-
-    !Droplet activation and growth based on Ponsonby et al. 2025
-    !call pbe_droplet_growth(index, ni, g_coeff1,g_coeff2)
-    
-    !depositional growth model activation (Karcher et al. 1996)
-    call pbe_depositional_growth_ice(index,ni,g_coeff1,g_coeff2)
-
-    
-  else
-    g_coeff1 =0.0
-    g_coeff2 =0.0
   endif
-
-!  For debug  
-!  if (index<5) then
-!    write(*,*) 'g_coeff1: ',g_coeff1
-!    write(*,*) 'g_coeff2: ',g_coeff2
-!  endif
   
   g_termr = g_coeff1*(v(index)**g_coeff2)
   g_terml = g_coeff1*(v(index-1)**g_coeff2)  
