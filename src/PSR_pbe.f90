@@ -92,21 +92,16 @@ subroutine psr_pbe()
     step_update = i_step
     !Write temperature and growth timescale (tau_g) to output
     if (growth_function>=4) then
+      
       !Compute and update saturation ratio based on the input data
       call p_sat_liq_murphy_koop(p_sat_liq)
       
-      !if (jet_cl_model .eq. 1) then
-      !  Smw = G_mixing_line ! this is just a place-holder
-      !elseif (jet_cl_model .eq. 2) then
-      !  Smw = amb_p*current_XH2O/p_sat_liq
-      !endif
-
       !Append to array
       !call append_scalar(Smw_time_series, Smw)
       Smw_time_series(i_step) = Smw
       
       !Supersaturation consumption
-      if ((i_step > 1) .and. (consumption_logical)) then
+      if ((i_step > 1) .and. (consumption_logical) .and. (Loss_Sw > 0.)) then
         Smw_time_series(i_step) = Smw_time_series(i_step-1) + ((Smw_time_series(i_step)-Smw_time_series(i_step-1))/dt - Loss_Sw)*dt
       endif   
       p_water = Smw_time_series(i_step) * p_sat_liq
