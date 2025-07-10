@@ -90,20 +90,24 @@ contains
   function dv_cont(T, P) result(Dv_c)
     !! Compute water vapor diffusivity (continuum regime) at temperature T and pressure P.
     !! T [K], P [Pa]; returns Dv_c [m^2/s].
+    ! (Pruppacher and Klett, 1997) and (eq. A1) in (Bier et al. 2021)
+    ! Valid for 233.15 < T < 313.15, but we apply to lower temperature as in (Bier et al. 2021)
     real(kind=8), intent(in) :: T, P
     real(kind=8) :: Dv_c, P_atm
     P_atm = P * 1.01325e-5_8
-    Dv_c = 1.0e-4_8*(0.211_8/P_atm)*( (T/273.0_8)**1.94_8 )
+    Dv_c = 1.0e-4_8*(0.211_8/P_atm)*( (T/273.15_8)**1.94_8 )
   end function dv_cont
 
   function dv_corr(T, r, P, accom) result(Dv_nc)
     !! Compute water vapor diffusivity corrected for non-continuum effects.
     !! T [K], r [m], P [Pa], accom: condensation coefficient.
     !! Returns Dv_nc [m^2/s].
+    !! THis is the correction as described in the pyrcel model implementation of Ponsonby et al. (2025)
+    !! Eq. S7 in Ponsonby et al. (2025)
     real(kind=8), intent(in) :: T, r, P, accom
     real(kind=8) :: Dv_nc, Dv_c, denom
     Dv_c = dv_cont(T, P)
-    denom = 1.0_8+(Dv_c/(accom*r))*sqrt((2.0_8*3.141592653589793_8*Mw)/(R*T))
+    denom = 1.0_8+(Dv_c/(accom*r))*sqrt((2.0_8*3.141592653589793_8*Mw)/(8.314_8*T))
     Dv_nc = Dv_c/denom
   end function dv_corr
 
@@ -128,6 +132,7 @@ contains
   function ka_cont(T) result(ka_c)
     !! Compute thermal conductivity of air (continuum), T [K].
     !! Returns ka_c [J/m/s/K].
+    !! Eq. S6 in Ponsonby et al. (2025)
     real(kind=8), intent(in) :: T
     real(kind=8) :: ka_c
     ka_c = 1.0e-3_8*(4.39_8+0.071_8*T)
@@ -137,10 +142,11 @@ contains
     !! Compute thermal conductivity of air corrected for non-continuum effects.
     !! T [K], rho [kg/m^3], r [m].
     !! Returns ka_nc [J/m/s/K].
+    !! Eq. S6 in Ponsonby et al. (2025)
     real(kind=8), intent(in) :: T, rho, r
     real(kind=8) :: ka_nc, ka_c, denom
     ka_c = ka_cont(T)
-    denom = 1.0_8+(ka_c/(at*r*rho*Cp))*sqrt((2.0_8*3.141592653589793_8*Ma)/(R*T))
+    denom = 1.0_8+(ka_c/(at*r*rho*Cp))*sqrt((2.0_8*3.141592653589793_8*Ma)/(8.314_8*T))
     ka_nc = ka_c/denom
   end function ka_corr
 
@@ -158,7 +164,7 @@ contains
     !! Returns S_eq [-].
     real(kind=8), intent(in) :: r, r_dry, T, kappa
     real(kind=8) :: S_eq, A, B
-    A = (2.0_8*Mw*sigma_w(T))/(R*T*rho_w*r)
+    A = (2.0_8*Mw*sigma_w(T))/(8.314_8*T*rho_w*r)
     B = (r**3-r_dry**3)/(r**3-(r_dry**3)*(1.0_8-kappa))
     S_eq = exp(A)*B - 1.0_8
   end function Seq
@@ -169,7 +175,7 @@ contains
     !! Returns S_eq_approx [-].
     real(kind=8), intent(in) :: r, r_dry, T, kappa
     real(kind=8) :: S_eq_approx, A
-    A = (2.0_8*Mw*sigma_w(T))/(R*T*rho_w*r)
+    A = (2.0_8*Mw*sigma_w(T))/(8.314_8*T*rho_w*r)
     S_eq_approx = A - kappa*(r_dry**3)/(r**3)
   end function Seq_approx
 
@@ -190,7 +196,7 @@ contains
     real(kind=8) :: A
 
     if (approx) then
-      A = (2.0_8*Mw*sigma_w(T))/(R*T*rho_w)
+      A = (2.0_8*Mw*sigma_w(T))/(8.314_8*T*rho_w)
       s_crit = sqrt((4.0_8*A**3)/(27.0_8*kappa*(r_dry**3)))
       r_crit = sqrt((3.0_8*kappa*(r_dry**3))/A)
     else

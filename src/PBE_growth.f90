@@ -74,7 +74,7 @@ else if (growth_function>=4) then
     if (activation_logical) then 
       if ((p_water .ge. p_sat_liq) .and. (p_water .ge. p_sat_ice)) then
         call pbe_droplet_growth(index, ni, g_coeff1,g_coeff2)
-      elseif ((p_water .le. p_sat_liq) .and. (p_water .ge. p_sat_ice)) then
+      elseif ((p_water .le. p_sat_liq) .and. (p_water .ge. p_sat_ice)) then ! TODO: Here is where I need to check if freezing-relaxation starts based on freezing temperature 
         call pbe_depositional_growth_ice(index, ni, g_coeff1,g_coeff2) 
       else
         g_coeff1 = 0.0
