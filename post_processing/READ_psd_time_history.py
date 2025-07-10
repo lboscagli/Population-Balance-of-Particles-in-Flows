@@ -37,7 +37,7 @@ path = './pbe/'
 
 case_name = r''#'$\rho_p [kg/m^3]$'
 
-analysis_name = 'RH1p6_55bins'
+analysis_name = 'N04p5e13_Depositional_no_consumption'#'LES_XH2O_55bins_geometric_buthanol'
 
 
 ###############################################################################
@@ -64,9 +64,10 @@ time = data_T[:,0]
 t_step = np.linspace(0,len(time),num=len(time))
 Temperature = data_T[:,1]
 Density = data_T[:,2]
-P_v = data_T[:,3] # water vapor partial pressure
+Smw = data_T[:,7] # saturation ratio of the mixing line assuming no particles gorwth
 tau_g = data_T[:,4] # growth timescale
 N_step_Save = len(time)//len(Sampled_iterations)
+Smw_consumed = data_T[:,8] # saturation ratio with consumption
 
 ## Compute saturated (relative to liquid) water vapour partial pressure 
 p_water_sat_liq = np.exp(54.842763 - 6763.22 / Temperature - 4.21 * np.log(Temperature) + \
@@ -77,33 +78,62 @@ p_water_sat_liq = np.exp(54.842763 - 6763.22 / Temperature - 4.21 * np.log(Tempe
 p_water_sat_ice = np.exp(9.550426 - 5723.265 / Temperature + 3.53068 * np.log(Temperature) + \
                   - 0.00728332 * Temperature) 
 
+## Compute water vapor partial pressure from saturation ratio
+P_v = Smw * p_water_sat_liq
+P_v_consumed = Smw_consumed*p_water_sat_liq
+
+# In[1]: Read PBE input file 
+with open(path+'pbe.in', 'r') as file:
+    #Read DNS bcset.f90 file
+    lines = file.readlines()
+    for line in lines:
+        if 'Number of grid points' in line:#.split():
+            Nbins=float(line.split()[0])
+        if 'Minimum size in grid' in line:#.split(): 
+            v_min=float(line.split()[0])
+        if 'Maximum size in grid' in line:#.split(): 
+            v_max=float(line.split()[0])
+
+#volume of the bins assuming uniform spacing
+dv_uniform = (v_max-v_min)/Nbins
+    
 # In[1]: Read timestep directories
 v_m = []
 d_m = []
 mean_d_m = []
 peak_d_m = []
 number_density = []
+Sum_nv = []
+Mean_d_m = []
 for t_filename in timestep_files:
     v_m_i = []
     d_m_i = []
+    dv_i = []
     number_density_i = []
     with open(path+t_filename) as f:
         for line in f.readlines():
             v_m_i.append(float(line.split()[0]))
             d_m_i.append(float(line.split()[1]))
             number_density_i.append(float(line.split()[2]))
+            dv_i.append(float(line.split()[6]))
         
     v_m.append(np.array(v_m_i))
     d_m.append(np.array(d_m_i))
-    number_density.append(np.array(number_density_i))
+    number_density.append(np.array(number_density_i)*np.array(dv_i))
     idx_mean = find_nearest(number_density_i, np.mean(number_density_i))
     idx_peak = np.argmax(number_density_i)
     mean_d_m.append(d_m_i[idx_mean])
     peak_d_m.append(d_m_i[idx_peak])
+    Sum_nv.append(np.sum(np.array(number_density_i)*np.array(dv_i)))
+    Mean_d_m.append(np.sum(np.array(d_m_i)*np.array(number_density_i)*np.array(dv_i))/np.sum(np.array(number_density_i)*np.array(dv_i)))
+
+
 
 dic = {'timesteps':timestep_files,
        'Mean_diameter':mean_d_m,
-       'Peak_diameter':peak_d_m}
+       'Peak_diameter':peak_d_m,
+       'Sum_nv':Sum_nv,
+       'Mean_d_m_nvw':Mean_d_m}
 
 savemat(plot_dir+'/statistics.mat',dic)
 
@@ -118,7 +148,8 @@ ax.set_xlabel(r'$d_m [nm]$',fontsize=18)
 ax.set_ylabel(r'$n_v [\#/m^3]$',fontsize=18)
 
 plt.xlim(min([min(d_m_i) for d_m_i in d_m])*1E9,max([max(d_m_i) for d_m_i in d_m])*1E9)
-#plt.xlim(0,2000)
+plt.ylim(1,max([max(nv) for nv in number_density]))
+plt.title('Particle number density\n per cell unit volume', fontsize=14)
 
 #plt.legend(loc='best',title=case_name,fontsize=14,title_fontsize=14)
 
@@ -147,16 +178,17 @@ plt.savefig(plot_dir+'/Temperature_history.png',dpi=600)
 
 fig,ax=plt.subplots()
 
-plt.semilogy(Temperature, p_water_sat_liq, 'k',ls='solid',label=r'$P_{v,sat}^{liq}$') 
-plt.semilogy(Temperature, p_water_sat_ice, 'r',ls='dashed',label=r'$P_{v,sat}^{ice}$')   
-plt.semilogy(Temperature[1:], P_v[1:], 'b',ls='-.',label=r'$\textnormal{mixing line, } RH_{liq}=const$')  
+plt.plot(Temperature, p_water_sat_liq, 'k',ls='solid',label=r'$P_{v,sat}^{liq}$') 
+plt.plot(Temperature, p_water_sat_ice, 'r',ls='dashed',label=r'$P_{v,sat}^{ice}$')   
+plt.plot(Temperature[1:], P_v_consumed[1:], 'c',ls='-.',label=r'$\textnormal{mixing line}$')
+#plt.plot(Temperature[1:], P_v_consumed[1:], 'g--',ls='-.')#,label=r'$\textnormal{mixing line}$')  
 
 ax.tick_params(labelsize=18)
 ax.set_ylabel(r'$P_{v} [Pa]$',fontsize=18)
 ax.set_xlabel(r'$T_{jet} [K]$',fontsize=18)
 
-plt.xlim(min(Temperature),max(Temperature))
-plt.ylim(1,max([max(p_water_sat_ice),max(p_water_sat_liq)]))
+plt.xlim(min(Temperature),260)
+plt.ylim(1,max([max(p_water_sat_ice[Temperature<250]),max(p_water_sat_liq[Temperature<250])]))
 
 plt.legend(loc='best',fontsize=14)
 
@@ -164,6 +196,24 @@ plt.tight_layout()
 
 plt.savefig(plot_dir+'/Saturation_partial_pressure.png',dpi=600)
 
+
+fig,ax=plt.subplots()
+
+plt.plot(Temperature, Smw - 1, 'b',ls='solid',label=r'$\textnormal{no particles}$') 
+plt.plot(Temperature, Smw_consumed -1, 'c',ls='dashed',label=r'$\textnormal{with consumption}$')   
+
+ax.tick_params(labelsize=18)
+ax.set_ylabel(r'$s_{w} [-]$',fontsize=18)
+ax.set_xlabel(r'$T_{jet} [K]$',fontsize=18)
+
+plt.xlim(min(Temperature),240)
+plt.ylim(0,(max(Smw[Temperature<250])-1) + 0.1*(max(Smw[Temperature<250])-1))
+
+plt.legend(loc='best',fontsize=14)
+
+plt.tight_layout()
+
+plt.savefig(plot_dir+'/Supersaturation_consumption.png',dpi=600)
 
 fig,ax=plt.subplots()
 
