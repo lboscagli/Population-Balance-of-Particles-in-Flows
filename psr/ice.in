@@ -10,3 +10,4 @@ ICE INPUT DATA
 837.7078165                                ! Jet initial velocity [m/s]
 600.0                              ! Jet initial temperature [K]
 0.005                               ! hygroscopicity (kappa) [-]
+.true.                               ! Supersaturation consumption - logical                

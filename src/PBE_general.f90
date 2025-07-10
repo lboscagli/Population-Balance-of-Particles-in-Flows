@@ -54,7 +54,8 @@ real(kind=8) :: S_vc !Critical saturation ratio for aerosol droplet with specifi
 real(kind=8) :: r_vc !Critical radius for aerosol particle to activate - this is dummy as we actually specify a wet radius for the nuclei 
 real, allocatable :: Smw_time_series(:)
 
-logical :: activation_logical !Water drople activation flag (initialize as .false. and then check saturation)
+logical :: activation_logical !Water droplet activation flag (initialize as .false. and then check saturation)
+logical :: consumption_logical !Flag for user activation of consumption of supersaturation based on K15 model
 
 integer m,grid_type
 integer i_gm,solver_pbe
@@ -258,6 +259,7 @@ subroutine pbe_ice_read()
   read(30,*) u_0j
   read(30,*) T_0j
   read(30,*) kappa
+  read(30,*) consumption_logical
   close(30)
 
   amb_rho = amb_p / amb_temp / (gascon / M_air) 

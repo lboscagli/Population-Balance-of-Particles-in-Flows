@@ -10,7 +10,7 @@ subroutine psr_pbe()
   !
   !**********************************************************************************************
   use pbe_mod, only: growth_function, jet_cl_model, amb_temp, amb_rho, current_temp, current_rho, p_water, tau_g, current_XH2O, dv, m
-  use pbe_mod, only: Loss_Sw, Smw, p_sat_liq, amb_p, G_mixing_line, Smw_time_series, step_update, activation_logical
+  use pbe_mod, only: Loss_Sw, Smw, p_sat_liq, amb_p, G_mixing_line, Smw_time_series, step_update, activation_logical, consumption_logical
   use ice_microphys_mod
   
   implicit none
@@ -106,7 +106,7 @@ subroutine psr_pbe()
       Smw_time_series(i_step) = Smw
       
       !Supersaturation consumption
-      if (i_step > 1) then
+      if ((i_step > 1) .and. (consumption_logical)) then
         Smw_time_series(i_step) = Smw_time_series(i_step-1) + ((Smw_time_series(i_step)-Smw_time_series(i_step-1))/dt - Loss_Sw)*dt
       endif   
       p_water = Smw_time_series(i_step) * p_sat_liq
