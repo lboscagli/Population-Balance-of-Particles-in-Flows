@@ -101,7 +101,7 @@ subroutine psr_pbe()
       Smw_time_series(i_step) = Smw
       
       !Supersaturation consumption
-      if ((i_step > 1) .and. (consumption_logical) .and. (Loss_Sw > 0.)) then
+      if ((i_step > 1) .and. (consumption_logical)) then
         Smw_time_series(i_step) = Smw_time_series(i_step-1) + ((Smw_time_series(i_step)-Smw_time_series(i_step-1))/dt - Loss_Sw)*dt
       endif   
       p_water = Smw_time_series(i_step) * p_sat_liq
