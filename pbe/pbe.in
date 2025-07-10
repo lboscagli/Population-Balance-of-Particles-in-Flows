@@ -13,12 +13,12 @@ PBE INPUT DATA
 1                               ! Grid type
 55                              ! Number of grid points
 1e-23 !0.05                            ! Minimum size in grid
-9.05362e-18 !1.E4                            ! Maximum size in grid
+1.13097e-15 !1.E4                            ! Maximum size in grid
 3.35103e-23 !1.                              ! Volume of nuclei
 2                               ! Initial distribution
 1                               ! First non-zero interval for top-hat distribution
 1                               ! Second non-zero interval for top-hat distribution
-5.e17                             ! Value for initialising number density
+4.469e13                             ! Value for initialising number density
 1                               ! Integration method
 
 Aggregation kernels:

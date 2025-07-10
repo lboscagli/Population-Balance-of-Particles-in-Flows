@@ -1,0 +1,12 @@
+ICE INPUT DATA
+
+18753.93                            ! Ambient pressure [Pa]
+225.15                              ! Ambient temperature [K]
+1.64                                ! Mixing line slope [Pa/K]
+1550.0                              ! Density of particles on the left side of the PSD [kg/m^3]
+0.1                                 ! alpha [-] - Karcher et al. 1996 (deposition coefficient - default should be 0.1)
+2                                   ! flag for jet temperature centerline model (=0 stationary temperature, = 1 based on jet dilution model, = 2 based on LES data)
+0.018                               ! Jet diameter [m]
+96.4                                ! Jet initial velocity [m/s]
+363.15                              ! Jet initial temperature [K]
+0.005                               ! hygroscopicity (kappa) [-]

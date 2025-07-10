@@ -130,6 +130,7 @@ contains
   
     use pbe_mod, only :v0, v_m, m, dv !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
     use pbe_mod, only :current_temp, amb_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
+    use pbe_mod, only :Smw_time_series, step_update
     use thermo
 
     implicit none
@@ -153,10 +154,10 @@ contains
     r_nuc = (3.0 / (4.0 * pi) * v0)**(1.0/3.0)        ! radius of the nuclei (samllest particle volume) - this is constant
 
     !Compute equilibrium saturation ratio over the particle
-    !S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
-    !S_v = S_v + 1.0   
-    call kohler_crit(current_temp, r_nuc, kappa, .true., r_crit, s_crit)
-    S_v = s_crit + 1.0
+    S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+    S_v = S_v + 1.0   
+    !call kohler_crit(current_temp, r_nuc, kappa, .true., r_crit, s_crit)
+    !S_v = s_crit + 1.0
      
 
     ! Saturation presure over liquid
@@ -171,10 +172,13 @@ contains
     Fk = Lw*rho_w/(4 * ka_corr(current_temp, part_den, r_part) * current_temp) * (Lw*Mw/(gascon*current_temp) - 1.0) !thermodynamic term associated to heat conduction
     Fd = rho_w * gascon * current_temp / (4 * Mw * dv_corr(current_temp, r_part, amb_p, accom) * p_water_sat_liq) !term associated with vapor diffusion
 
-    drdt = (1.0 / (Fk + Fd)) * (1 / r_part) * (S_e - S_v) 
+    drdt = (1.0 / (Fk + Fd)) * (1 / r_part) * (Smw_time_series(step_update) - S_e) 
   
-    !write(*,*) 'S_v',S_v
-    !write(*,*) 'S_e',S_e
+    write(*,*) 'Smw',Smw_time_series(step_update)
+    write(*,*) 'S_e',S_e
+    write(*,*) 'Fk',Fk
+    write(*,*) 'Fd',Fd
+    write(*,*) 'r_part',r_part
 
     g_coeff2 = 2.0 / 3.0 
     if (drdt .ge. 0) then
