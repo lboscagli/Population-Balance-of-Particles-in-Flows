@@ -63,7 +63,7 @@ else if (growth_function>=4) then
 
   if (growth_function==4) then
     !Depositional growth model activation (Karcher et al. 1996)
-    if (p_water .ge. p_sat_liq) then !SAC criterion
+    if (Smw .ge. 1.0) then !SAC criterion
       call pbe_depositional_growth_ice(index,ni,g_coeff1,g_coeff2)  
     else
       g_coeff1 =0.0
@@ -88,6 +88,7 @@ else if (growth_function>=4) then
       S_vc = S_vc + 1.0
       if (Smw_time_series(step_update) .ge. S_vc) then
         activation_logical = .true.
+        call pbe_droplet_growth(index, ni, g_coeff1,g_coeff2)
       else
         g_coeff1 = 0.0
         g_coeff2 = 0.0
