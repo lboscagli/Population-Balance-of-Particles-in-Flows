@@ -385,8 +385,17 @@ subroutine pbe_ice_update(time, jet_temp, jet_rho)
       p_sat_liq = (EXP(54.842763 - 6763.22/jet_temp - 4.210 * LOG(jet_temp) + 0.000367 * jet_temp + TANH(0.0415 * (jet_temp - 218.8)) * \
       (53.878 - 1331.22/jet_temp - 9.44523 * LOG(jet_temp) + 0.014025 * jet_temp)))
 
-      !Saturation ratio
+      !Saturation ratio and Water vapor partial pressure along the mixing line
       Smw = p_water / p_sat_liq
+
+      if (consumption_logical) then
+        if (step_update .eq. 0) then
+          p_water = Smw*p_sat_liq
+        else
+          p_water = Smw_time_series(step_update)*p_sat_liq
+          Smw = p_water/p_sat_liq
+        endif     
+      endif
   
     end subroutine pbe_ice_update_LES
   
