@@ -311,7 +311,7 @@ subroutine pbe_ice_update(time, jet_temp, jet_rho)
     else
       jet_temp = T_0j
     endif
-    jet_rho = amb_p / jet_temp / (gascon / M_air)
+
 
     ! Compute saturation ratio based on user defined slope of mixing line (G_mixing_line) 
     p_sat_ice = EXP(9.550426 - 5723.265/jet_temp + 3.53068 * LOG(jet_temp) -  0.00728332 * jet_temp )
@@ -330,7 +330,13 @@ subroutine pbe_ice_update(time, jet_temp, jet_rho)
     else
       p_water = Smw_time_series(step_update)*p_sat_liq
     endif
-    
+  
+    ! Jet moist air density
+    jet_rho = amb_p/(gascon/M_air*(jet_temp*(1.0_8+0.61_8*((p_water/p_sat_liq)*0.622_8*((611.2_8*exp(17.67_8*(jet_temp-273.15)/((jet_temp-273.15)+243.5_8)))/amb_p)))))
+    !write(*,*) 'Moist air density',jet_rho
+    ! Jet dry air density
+    !jet_rho = amb_p / jet_temp / (gascon / M_air)
+    !write(*,*) 'Dry air density',jet_rho  
 
   end subroutine pbe_ice_update
 
@@ -345,59 +351,60 @@ subroutine pbe_ice_update(time, jet_temp, jet_rho)
     ! Luca Boscagli 29/05/2025
     !
     !**********************************************************************************************
-      use pbe_mod
+    use pbe_mod
+  
+    implicit none
+
+    double precision, intent(in)                  :: time
+    double precision, intent(out)                  :: jet_temp, jet_rho, jet_XH2O
+    double precision :: a_T, b_T, a_XH2O, b_XH2O, c_XH2O, d_XH2O
+
+    double precision :: gascon=8314.3
+    double precision :: M_air = 28.96
     
-      implicit none
-  
-      double precision, intent(in)                  :: time
-      double precision, intent(out)                  :: jet_temp, jet_rho, jet_XH2O
-      double precision :: a_T, b_T, a_XH2O, b_XH2O, c_XH2O, d_XH2O
-  
-      double precision :: gascon=8314.3
-      double precision :: M_air = 28.96
+    !----------------------------------------------------------------------------------------------
       
-      !----------------------------------------------------------------------------------------------
-      
-      ! Read ICE input data
-      
-      !Parameters from fitting of LES data - this are case dependent and not general
-      a_T = 0.00128922
-      b_T = 0.77394931
-      a_XH2O = 1.15187008e-03
-      b_XH2O = 7.22690952e-01
-      c_XH2O = 2.37237876e-02
-      d_XH2O = -1.14574449e-04
-      
-      !temperature
-      jet_temp = amb_temp + (T_0j - amb_temp)*(a_T/(time+a_T))**b_T 
-      
-      !Water vapor molar fraction
-      jet_XH2O = d_XH2O + (c_XH2O - d_XH2O)*(a_XH2O/(time+a_XH2O))**b_XH2O
-      
-      !Density
-      jet_rho = amb_p / jet_temp / (gascon / M_air)
+    ! Read ICE input data
+    
+    !Parameters from fitting of LES data - this are case dependent and not general
+    a_T = 0.00128922
+    b_T = 0.77394931
+    a_XH2O = 1.15187008e-03
+    b_XH2O = 7.22690952e-01
+    c_XH2O = 2.37237876e-02
+    d_XH2O = -1.14574449e-04
+    
+    !temperature
+    jet_temp = amb_temp + (T_0j - amb_temp)*(a_T/(time+a_T))**b_T 
+    
+    !Water vapor molar fraction
+    jet_XH2O = d_XH2O + (c_XH2O - d_XH2O)*(a_XH2O/(time+a_XH2O))**b_XH2O
+    
+    !Water vapor partial pressure
+    p_water = amb_p*jet_XH2O
 
-      !Water vapor partial pressure
-      p_water = amb_p*jet_XH2O
-  
-      !Saturation pressure relative to ice and liquid
-      p_sat_ice = EXP(9.550426 - 5723.265/jet_temp + 3.53068 * LOG(jet_temp) -  0.00728332 * jet_temp )
-      p_sat_liq = (EXP(54.842763 - 6763.22/jet_temp - 4.210 * LOG(jet_temp) + 0.000367 * jet_temp + TANH(0.0415 * (jet_temp - 218.8)) * \
-      (53.878 - 1331.22/jet_temp - 9.44523 * LOG(jet_temp) + 0.014025 * jet_temp)))
+    !Saturation pressure relative to ice and liquid
+    p_sat_ice = EXP(9.550426 - 5723.265/jet_temp + 3.53068 * LOG(jet_temp) -  0.00728332 * jet_temp )
+    p_sat_liq = (EXP(54.842763 - 6763.22/jet_temp - 4.210 * LOG(jet_temp) + 0.000367 * jet_temp + TANH(0.0415 * (jet_temp - 218.8)) * \
+    (53.878 - 1331.22/jet_temp - 9.44523 * LOG(jet_temp) + 0.014025 * jet_temp)))
 
-      !Saturation ratio and Water vapor partial pressure along the mixing line
-      Smw = p_water / p_sat_liq
+    !Saturation ratio and Water vapor partial pressure along the mixing line
+    Smw = p_water / p_sat_liq
 
-      if (consumption_logical) then
-        if (step_update .eq. 0) then
-          p_water = Smw*p_sat_liq
-        else
-          p_water = Smw_time_series(step_update)*p_sat_liq
-          Smw = p_water/p_sat_liq
-        endif     
-      endif
+    if (consumption_logical) then
+      if (step_update .eq. 0) then
+        p_water = Smw*p_sat_liq
+      else
+        p_water = Smw_time_series(step_update)*p_sat_liq
+        Smw = p_water/p_sat_liq
+      endif     
+    endif
+
+    ! Jet moist air density
+    jet_rho = amb_p/(gascon/M_air*(jet_temp*(1.0_8+0.61_8*((p_water/p_sat_liq)*0.622_8*((611.2_8*exp(17.67_8*(jet_temp-273.15)/((jet_temp-273.15)+243.5_8)))/amb_p)))))
+
   
-    end subroutine pbe_ice_update_LES
+  end subroutine pbe_ice_update_LES
   
   !**********************************************************************************************
   

@@ -47,11 +47,11 @@ if (growth_function>=4) then
     endif
   enddo 
 
-  do i = 1,m
+  !do i = 1,m
 
-    ni(i) = ni(i) * current_rho
+  !  ni(i) = ni(i) * current_rho
   
-  enddo
+  !enddo
 
 endif
 
@@ -88,11 +88,11 @@ else if (solver_pbe == 3) then
 end if
 
 if (growth_function>=4) then
-  do i = 1,m
+  !do i = 1,m
 
-    ni(i) = ni(i) / current_rho
+  !  ni(i) = ni(i) / current_rho
   
-  enddo  
+  !enddo  
   
   !Eliminate the negative values of number density which are not physical - Luca 27/04/2025
   do i = 1,m
