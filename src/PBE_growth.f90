@@ -38,6 +38,7 @@ double precision :: nr                !< Number density in right cell
 double precision :: nrr               !< Number density in right-right cell
 double precision :: eps               !< Tolerance for upwind ratio
 double precision :: rl,rr             !< r+ at left and right surface
+double precision :: T_frz ! Luca - freezing temperature
 
 parameter(eps = 1.D1*epsilon(1.D0))
 
@@ -60,6 +61,7 @@ else if (growth_function==2) then
 else if (growth_function>=4) then
   ! Ice growth model
   ! compute g_coeff1 and g_coeff2 from kinetic growth model
+  
 
   if (growth_function==4) then
     !Depositional growth model activation (Karcher et al. 1996)
@@ -70,14 +72,17 @@ else if (growth_function>=4) then
       g_coeff2 =0.0
     endif
   elseif (growth_function==5) then
+    ! Compute freezing temperature neeeded to check if freezing-relaxation starts based on freezing temperature
+    ! Note that freezing temperature depends on liquid volume available for freezing (i.e., depends on (v(index)-v_0))
+    call pbe_freezing_temperature(index, T_frz)
+
     !Droplet activation and growth based on Ponsonby et al. 2025
     if (activation_logical) then 
-      if ((p_water .ge. p_sat_liq) .and. (p_water .ge. p_sat_ice)) then
-        call pbe_condensational_droplet_growth(index, ni, g_coeff1,g_coeff2)
-      !! TODO 
-      !! Here is where I need to check if freezing-relaxation starts based on freezing temperature
-      !! Note that freezing temperature depends on liquid volume available for freezing (i.e., depends on (v(index)-v_0))  
-      elseif ((p_water .le. p_sat_liq) .and. (p_water .ge. p_sat_ice)) then 
+      if ((p_water .ge. p_sat_liq) .and. (current_temp > T_frz)) then
+        write(*,*) 'Condensational growth'
+        call pbe_condensational_droplet_growth(index, ni, g_coeff1,g_coeff2)  
+      elseif ((p_water .ge. p_sat_liq) .and. (current_temp .le. T_frz)) then 
+        write(*,*) 'Depositional growth'
         call pbe_depositional_growth_ice(index, ni, g_coeff1,g_coeff2) 
       else
         g_coeff1 = 0.0

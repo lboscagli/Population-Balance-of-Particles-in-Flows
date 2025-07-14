@@ -319,7 +319,7 @@ contains
     
   end subroutine pbe_depositional_growth_ice
 
-  subroutine pbe_freezing_temperature(index)
+  subroutine pbe_freezing_temperature(index, T_frz)
 
   !**********************************************************************************************
   !
@@ -339,6 +339,7 @@ contains
     implicit none
   
     integer, intent(in)  :: index
+    double precision, intent(out)  :: T_frz
 
     double precision :: LWV, J_freez_rate_coeff
     real,parameter :: pi = 3.141592653589793E+00
@@ -352,7 +353,13 @@ contains
 
     !COmpute freezing rate coefficient
     J_freez_rate_coeff = 1E6 * exp(a_1*current_temp + a_2)
-  
+
+    !COmpute freezing temperature
+    if (LWV .eq. 0.) then
+      T_frz = 0.0
+    else  
+      T_frz = (1.0/a_1) * (LOG((1.0E-6 * a_1 * plume_cooling_rate)/LWV) - a_2)
+    endif
     
   end subroutine pbe_freezing_temperature
 
