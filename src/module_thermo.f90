@@ -81,6 +81,7 @@ module thermo
   implicit none
   public :: dv_cont, dv_corr, rho_air, es, ka_cont, ka_corr, sigma_w
   public :: Seq, Seq_approx, kohler_crit, critical_curve, r_eff
+  public :: kair_conductivity, latent_heat_cond_evap
 
   ! Temporary variables for minimization:
   real(kind=8), save :: tmp_r_dry, tmp_T, tmp_kappa
@@ -110,6 +111,23 @@ contains
     denom = 1.0_8+(Dv_c/(ac*r))*sqrt((2.0_8*3.141592653589793_8*Ma)/(8.314_8*T))
     Dv_nc = Dv_c/denom
   end function dv_corr
+
+  function latent_heat_cond_evap(T) result(Lc_cond_evap)
+    !! Compute latent heat of condensation/evaporation at temperature T [K].
+    !! eq. A3 in Bier et al. 2021.
+    double precision, intent(in) :: T
+    double precision :: Lc_cond_evap
+    Lc_cond_evap = 2.5E6 - 2.36E3 * (T - 273.15) + 1.6 * (T - 273.15)**2 - 0.06 * (T - 273.15)**3
+  end function latent_heat_cond_evap  
+
+  function kair_conductivity(T) result(kair_c)
+    !! Compute thermal conductivity of air (continuum), T [K].
+    !! Returns kair_c [J/m/s/K].
+    !! Eq. A2 in Bier et al. (2021)
+    double precision, intent(in) :: T
+    double precision :: kair_c
+    kair_c = 2.381E-2 + 7.113E-5 * (T - 273.15)
+  end function kair_conductivity 
 
   function es(T_c) result(e_sat)
     !! Compute saturation vapor pressure over water at temperature T_c [C].
