@@ -81,7 +81,7 @@ module thermo
   implicit none
   public :: dv_cont, dv_corr, rho_air, es, ka_cont, ka_corr, sigma_w
   public :: Seq, Seq_approx, kohler_crit, critical_curve, r_eff
-  public :: kair_conductivity, latent_heat_cond_evap
+  public :: kair_conductivity, latent_heat_cond_evap, latent_heat_dep_sub, mean_thermal_speed
 
   ! Temporary variables for minimization:
   real(kind=8), save :: tmp_r_dry, tmp_T, tmp_kappa
@@ -120,6 +120,14 @@ contains
     Lc_cond_evap = 2.5E6 - 2.36E3 * (T - 273.15) + 1.6 * (T - 273.15)**2 - 0.06 * (T - 273.15)**3
   end function latent_heat_cond_evap  
 
+  function latent_heat_dep_sub(T) result(Ld_dep_sub)
+    !! Compute latent heat of deposition/sublimation at temperature T [K].
+    !! eq. A10 in Bier et al. 2021.
+    double precision, intent(in) :: T
+    double precision :: Ld_dep_sub
+    Ld_dep_sub = 2.8346E6 - 340.0 * (T - 273.15) - 10.46 * (T - 273.15)**2
+  end function latent_heat_dep_sub  
+
   function kair_conductivity(T) result(kair_c)
     !! Compute thermal conductivity of air (continuum), T [K].
     !! Returns kair_c [J/m/s/K].
@@ -128,6 +136,17 @@ contains
     double precision :: kair_c
     kair_c = 2.381E-2 + 7.113E-5 * (T - 273.15)
   end function kair_conductivity 
+
+  function mean_thermal_speed(T) result(v_th)
+    !! Compute thermal conductivity of air (continuum), T [K].
+    !! Returns kair_c [J/m/s/K].
+    !! Eq. A2 in Bier et al. (2021)
+    double precision, intent(in) :: T
+    double precision :: v_th, Boltzmann_constant, mass_water_molecule
+    Boltzmann_constant = 1.38064852E-23
+    mass_water_molecule = 18.016/6.022E23
+    v_th = sqrt((8 * Boltzmann_constant * T) / (3.141592653589793 * mass_water_molecule))
+  end function mean_thermal_speed 
 
   function es(T_c) result(e_sat)
     !! Compute saturation vapor pressure over water at temperature T_c [C].

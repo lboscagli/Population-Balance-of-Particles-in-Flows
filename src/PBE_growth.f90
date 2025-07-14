@@ -80,10 +80,10 @@ else if (growth_function>=4) then
     if (activation_logical) then 
       if ((p_water .ge. p_sat_liq) .and. (current_temp > T_frz)) then
         !write(*,*) 'Condensational growth'
-        call pbe_condensational_droplet_growth(index, ni, g_coeff1,g_coeff2)  
+        call pbe_condensational_droplet_growth_Bier(index, ni, g_coeff1,g_coeff2)  
       elseif ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz)) then 
         !write(*,*) 'Depositional growth'
-        call pbe_depositional_growth_ice(index, ni, g_coeff1,g_coeff2) 
+        call pbe_depositional_growth_ice_Bier(index, ni, g_coeff1,g_coeff2) 
       else
         g_coeff1 = 0.0
         g_coeff2 = 0.0  
@@ -93,7 +93,7 @@ else if (growth_function>=4) then
       S_vc = S_vc + 1.0
       if (Smw_time_series(step_update) .ge. S_vc) then
         activation_logical = .true.
-        call pbe_condensational_droplet_growth(index, ni, g_coeff1,g_coeff2)
+        call pbe_condensational_droplet_growth_Bier(index, ni, g_coeff1,g_coeff2)
       else
         g_coeff1 = 0.0
         g_coeff2 = 0.0
