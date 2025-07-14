@@ -73,7 +73,7 @@ else if (growth_function>=4) then
     !Droplet activation and growth based on Ponsonby et al. 2025
     if (activation_logical) then 
       if ((p_water .ge. p_sat_liq) .and. (p_water .ge. p_sat_ice)) then
-        call pbe_droplet_growth(index, ni, g_coeff1,g_coeff2)
+        call pbe_condensational_droplet_growth(index, ni, g_coeff1,g_coeff2)
       !! TODO 
       !! Here is where I need to check if freezing-relaxation starts based on freezing temperature
       !! Note that freezing temperature depends on liquid volume available for freezing (i.e., depends on (v(index)-v_0))  
@@ -88,7 +88,7 @@ else if (growth_function>=4) then
       S_vc = S_vc + 1.0
       if (Smw_time_series(step_update) .ge. S_vc) then
         activation_logical = .true.
-        call pbe_droplet_growth(index, ni, g_coeff1,g_coeff2)
+        call pbe_condensational_droplet_growth(index, ni, g_coeff1,g_coeff2)
       else
         g_coeff1 = 0.0
         g_coeff2 = 0.0

@@ -53,6 +53,8 @@ real :: Smw !Saturation ratio along the mixingline with no particles
 real(kind=8) :: S_vc !Critical saturation ratio for aerosol droplet with specific dry radius and hygroscopicity
 real(kind=8) :: r_vc !Critical radius for aerosol particle to activate - this is dummy as we actually specify a wet radius for the nuclei 
 real, allocatable :: Smw_time_series(:)
+double precision, allocatable :: T_time_series(:) !plume temperature time series
+double precision :: plume_cooling_rate !plume cooling rate
 
 logical :: activation_logical !Water droplet activation flag (initialize as .false. and then check saturation)
 logical :: consumption_logical !Flag for user activation of consumption of supersaturation based on K15 model
@@ -854,7 +856,7 @@ subroutine pbe_deallocate()
 
 use pbe_mod
  
-deallocate(v,dv,v_m,nuc,Smw_time_series)
+deallocate(v,dv,v_m,nuc,Smw_time_series,T_time_series)
 
 end subroutine pbe_deallocate
 

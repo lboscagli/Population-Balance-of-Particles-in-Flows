@@ -2,7 +2,7 @@ module ice_microphys_mod
   implicit none
   private
   public :: append_scalar, saturation_ratio, p_sat_ice_murphy_koop, p_sat_liq_murphy_koop
-  public :: pbe_droplet_growth, pbe_ice_growth, pbe_depositional_growth_ice
+  public :: pbe_condensational_droplet_growth, pbe_depositional_growth_ice, pbe_freezing_temperature
 contains
 
 !---------------------------------------------------------------------------------------------------
@@ -115,7 +115,7 @@ contains
     call move_alloc(tmp, arr)
   end subroutine append_scalar
 
-  subroutine pbe_droplet_growth(index, ni, g_coeff1,g_coeff2)
+  subroutine pbe_condensational_droplet_growth(index, ni, g_coeff1,g_coeff2)
 
   !**********************************************************************************************
   !
@@ -192,79 +192,8 @@ contains
 
     
   
-  end subroutine pbe_droplet_growth  
+  end subroutine pbe_condensational_droplet_growth  
 
-  subroutine pbe_ice_growth(index, S_e, ni, g_coeff1,g_coeff2)
-
-  !**********************************************************************************************
-  !
-  ! Computation of g_coeff1 from kinetic growth model. The model applies fter freezing-relaxation point
-  !
-  ! Based on deposition model by Karcher et al. 2015 and Ponsonby et al. 2025
-  !    
-  ! Luca Boscagli 04/07/2025
-  !
-  !**********************************************************************************************
-  
-    use pbe_mod, only :v0, v_m, m, dv !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
-    use pbe_mod, only :current_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
-    use thermo
-
-    implicit none
-  
-    integer, intent(in)  :: index, S_e
-    double precision, dimension(m), intent(in) :: ni
-    double precision, intent(out)              :: g_coeff1, g_coeff2
-    
-    double precision :: p_water_sat_ice,p_water_sat_liq !,RH,amb_temp,amb_p,amb_rho
-    double precision :: M_water !,M_air, X_water
-    double precision :: r_part,r_nuc,den_ice
-    double precision :: dif_water,lambda_water
-    double precision :: coll_factor,Kn!,alpha_ice
-    double precision :: fornow,drdt
-    double precision :: part_den !, part_den_l, part_den_r
-    real,parameter :: pi = 3.141592653589793E+00
-    double precision :: gascon=8314.3
-    
-    g_coeff1 = 0.0
-    g_coeff2 = 0.0
-
-  !  M_water = 18.016 ! water molecular weigth
-  !  M_air = 28.96 ! air molecular weigth
-
-  
-  !  r_part = (3.0 / (4.0 * pi) * v_m(index))**(1.0/3.0)  ! radius of spherically assumed particles computed from the volume at the middle of each bin v_m
-  !  r_nuc = (3.0 / (4.0 * pi) * v0)**(1.0/3.0)        ! radius of the nuclei (samllest particle volume) - this is constant
-  
-  !  part_den = (part_den_l * r_nuc**3.0 + den_ice * &
-  !                          (r_part**3.0 - r_nuc**3.0)) / r_part**3.0  ! particle density
-  
-  
-  !  dif_water = 2.11D-5 * 101325.0 / amb_p * (current_temp / 273.15)**1.94  ! diffusion coefficient of water vapor molecules in air 
-  ! lambda_water = 6.15D-8 * 101325.0 / amb_p * current_temp / 273.15       ! water vapor mean free path
-  
-  !  Kn = lambda_water / r_part  ! knudsen number 
-  
-  !  coll_factor = 1.0 / (1.0 / (1.0 + Kn) + 4.0 / 3.0 * Kn / alpha_ice) ! collision factor (G), accounts for transition from gas kinetic energy (G->1 for Kn->0) to continuum regime (G->0 for Kn->1)
-  
-  !  fornow = dif_water * coll_factor * M_water * (p_water - p_water_sat_ice) &
-  !          / (gascon * current_temp)   ! nominator of dr/dt 
-                                    ! [ M_water * p_water_sat_ice / (gascon * current_temp)]: saturated (relative to ice) water vapor density (considering compressibility factor approx = 1)
-                                    ! This is calling gascon = 8314.3 J/K/kg (in module_chemistry.f90)
-                                    ! gascon/M_water is the specific gas constant for water vapor, i.e., Rv = 461.52 J/K/kg
-                                    
-  
-  !  drdt = fornow / (part_den * r_part) ! change in particle radius over time
-  
-  !  g_coeff2 = 2.0 / 3.0 
-  !  if (p_water.ge.p_water_sat_liq) then 
-  !    g_coeff1 = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
-  !  else
-  !    g_coeff1 = 0.0
-  !  endif  
-      
-    
-  end subroutine pbe_ice_growth  
 
   subroutine pbe_depositional_growth_ice(index, ni, g_coeff1,g_coeff2)
 
@@ -389,6 +318,43 @@ contains
   
     
   end subroutine pbe_depositional_growth_ice
+
+  subroutine pbe_freezing_temperature(index)
+
+  !**********************************************************************************************
+  !
+  ! Computation of freezing temperature. This forms the criterion to witch from condensational
+  ! droplet growth to depositional ice growth.
+  !
+  ! Based on Karcher et al. 2015, Bier et al. 2021 and Ponsonby et al. 2025
+  !    
+  ! Luca Boscagli 14/07/2025
+  !
+  !**********************************************************************************************
+
+    use pbe_mod, only :v0, v_m, m, dv !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
+    use pbe_mod, only :current_temp, plume_cooling_rate
+    use thermo
+
+    implicit none
+  
+    integer, intent(in)  :: index
+
+    double precision :: LWV, J_freez_rate_coeff
+    real,parameter :: pi = 3.141592653589793E+00
+    double precision :: gascon=8314.3
+    double precision :: a_1=-3.5714 !(1/K) - Karcher et al
+    double precision :: a_2=858.719
+    
+
+    !Compute liquid water volume (LWV)
+    LWV = v_m(index) - v0
+
+    !COmpute freezing rate coefficient
+    J_freez_rate_coeff = 1E6 * exp(a_1*current_temp + a_2)
+  
+    
+  end subroutine pbe_freezing_temperature
 
 end module ice_microphys_mod
 
