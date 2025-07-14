@@ -79,10 +79,10 @@ else if (growth_function>=4) then
     !Droplet activation and growth based on Ponsonby et al. 2025
     if (activation_logical) then 
       if ((p_water .ge. p_sat_liq) .and. (current_temp > T_frz)) then
-        write(*,*) 'Condensational growth'
+        !write(*,*) 'Condensational growth'
         call pbe_condensational_droplet_growth(index, ni, g_coeff1,g_coeff2)  
       elseif ((p_water .ge. p_sat_liq) .and. (current_temp .le. T_frz)) then 
-        write(*,*) 'Depositional growth'
+        !write(*,*) 'Depositional growth'
         call pbe_depositional_growth_ice(index, ni, g_coeff1,g_coeff2) 
       else
         g_coeff1 = 0.0
