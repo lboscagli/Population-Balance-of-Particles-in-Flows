@@ -854,7 +854,7 @@ subroutine pbe_deallocate()
 
 use pbe_mod
  
-deallocate(v,dv,v_m,nuc)
+deallocate(v,dv,v_m,nuc,Smw_time_series)
 
 end subroutine pbe_deallocate
 

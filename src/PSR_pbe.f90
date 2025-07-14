@@ -108,9 +108,9 @@ subroutine psr_pbe()
 
       !Write to output file
       if (activation_logical) then
-        write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),1.0
+        write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),1.0,moment(0),moment(1),meansize
       else
-        write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),0.0
+        write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),0.0,moment(0),moment(1),meansize
       endif
     endif
   
@@ -175,7 +175,7 @@ subroutine psr_pbe()
     close(999)
   endif   
   
-  1001 format(10E20.10)
+  1001 format(13E20.10)
   
   end subroutine psr_pbe
   
