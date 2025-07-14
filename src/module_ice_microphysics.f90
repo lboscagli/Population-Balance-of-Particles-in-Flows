@@ -358,7 +358,7 @@ contains
     if (LWV .eq. 0.) then
       T_frz = 0.0
     else  
-      T_frz = (1.0/a_1) * (LOG((1.0E-6 * a_1 * plume_cooling_rate)/LWV) - a_2)
+      T_frz = (1.0/a_1) * (LOG((1.0E-6 * a_1 * plume_cooling_rate)/LWV) - a_2) ! Expression based on eq. 36 in (Karcher et al. 2015) and eq. 6 in (Bier et al. 2021)
     endif
     
   end subroutine pbe_freezing_temperature
