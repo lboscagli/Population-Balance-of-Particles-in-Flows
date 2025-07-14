@@ -170,7 +170,7 @@ contains
 
 
     !Compute growth coefficient G=1/(Fk+Fd) based on Rogers and Yau (1996)
-    Fk = Lw*rho_w/(4 * ka_cont(current_temp) * current_temp) * (Lw*Mw/(gascon*current_temp) - 1.0) !thermodynamic term associated to heat conduction
+    Fk = Lw*rho_w/(4 * ka_corr(current_temp, current_rho, r_part) * current_temp) * (Lw*Mw/(gascon*current_temp) - 1.0) !thermodynamic term associated to heat conduction
     Fd = rho_w * gascon * current_temp / (4 * Mw * dv_corr(current_temp, r_part, amb_p, accom) * p_water_sat_liq) !term associated with vapor diffusion
 
     drdt = (1.0 / (Fk + Fd)) * (1 / r_part) * (Smw_time_series(step_update) - S_v) 

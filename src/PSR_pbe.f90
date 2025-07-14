@@ -128,13 +128,12 @@ subroutine psr_pbe()
   
     ! Integrate
     call pbe_integ(ni,dt)
-
   
     ! Calculate moments
     call pbe_moments(ni,moment,meansize)
   
     if (growth_function>=4) then
-      if (moment(0)==0) then
+      if ((moment(0)==0) .and. (Smw.le.1.0)) then
         call pbe_init(ni)
         do i=1,m
           ni(i) = ni(i) / dv(i)

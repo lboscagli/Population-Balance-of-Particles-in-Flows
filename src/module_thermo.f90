@@ -6,11 +6,11 @@ module constants
   real(kind=8), parameter :: Cp = 1004.0_8  !! specific heat of dry air at const. pressure [J/kg/K]
   real(kind=8), parameter :: Lw = 2.25e6_8   !! latent heat of vaporization [J/kg]
   real(kind=8), parameter :: rho_w = 1000.0_8 !! density of water [kg/m^3]
-  real(kind=8), parameter :: R = 8.314_8    !! universal gas constant [J/mol/K]
+  real(kind=8), parameter :: Rgas = 8.314_8    !! universal gas constant [J/mol/K]
   real(kind=8), parameter :: Mw = 18.016_8/1.0e3_8 !! molar weight of water [kg/mol]
   real(kind=8), parameter :: Ma = 28.96_8/1.0e3_8 !! molar weight of dry air [kg/mol]
-  real(kind=8), parameter :: Rd = R/Ma      !! gas constant for dry air [J/(kg/K)]
-  real(kind=8), parameter :: Rv = R/Mw      !! gas constant for water vapor [J/(kg/K)]
+  real(kind=8), parameter :: Rd = Rgas/Ma      !! gas constant for dry air [J/(kg/K)]
+  real(kind=8), parameter :: Rv = Rgas/Mw      !! gas constant for water vapor [J/(kg/K)]
   real(kind=8), parameter :: Dv_w = 3.0e-5_8  !! water vapor diffusivity in air [m^2/s]
   real(kind=8), parameter :: ac = 1.0_8     !! condensation coefficient [-]
   real(kind=8), parameter :: Ka = 2.0e-2_8  !! thermal conductivity of air [J/m/s/K]
@@ -107,7 +107,7 @@ contains
     real(kind=8), intent(in) :: T, r, P, accom
     real(kind=8) :: Dv_nc, Dv_c, denom
     Dv_c = dv_cont(T, P)
-    denom = 1.0_8+(Dv_c/(accom*r))*sqrt((2.0_8*3.141592653589793_8*Mw)/(8.314_8*T))
+    denom = 1.0_8+(Dv_c/(ac*r))*sqrt((2.0_8*3.141592653589793_8*Ma)/(8.314_8*T))
     Dv_nc = Dv_c/denom
   end function dv_corr
 
@@ -146,7 +146,7 @@ contains
     real(kind=8), intent(in) :: T, rho, r
     real(kind=8) :: ka_nc, ka_c, denom
     ka_c = ka_cont(T)
-    denom = 1.0_8+(ka_c/(at*r*rho*Cp))*sqrt((2.0_8*3.141592653589793_8*Ma)/(8.314_8*T))
+    denom = 1.0_8+(ka_c/(at*r*rho_w*Cp))*sqrt((2.0_8*3.141592653589793_8*Ma)/(8.314_8*T))
     ka_nc = ka_c/denom
   end function ka_corr
 

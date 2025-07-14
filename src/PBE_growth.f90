@@ -81,7 +81,7 @@ else if (growth_function>=4) then
       if ((p_water .ge. p_sat_liq) .and. (current_temp > T_frz)) then
         !write(*,*) 'Condensational growth'
         call pbe_condensational_droplet_growth(index, ni, g_coeff1,g_coeff2)  
-      elseif ((p_water .ge. p_sat_liq) .and. (current_temp .le. T_frz)) then 
+      elseif ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz)) then 
         !write(*,*) 'Depositional growth'
         call pbe_depositional_growth_ice(index, ni, g_coeff1,g_coeff2) 
       else
