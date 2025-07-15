@@ -105,9 +105,6 @@ subroutine psr_pbe()
       
       !Supersaturation consumption
       if ((i_step > 1) .and. (consumption_logical)) then
-        !write(*,*) 'Derivative',(Smw_time_series(i_step)-Smw_time_series(i_step-1))/dt
-        !write(*,*) 'Production',Production_Sw
-        !Smw_time_series(i_step) = Smw_time_series(i_step-1) + ((Smw_time_series(i_step)-Smw_time_series(i_step-1))/dt - Loss_Sw)*dt
         Smw_time_series(i_step) = Smw_time_series(i_step-1) + (Production_Sw - Loss_Sw)*dt 
         plume_cooling_rate = (T_time_series(i_step) - T_time_series(i_step-1))/dt
       endif   

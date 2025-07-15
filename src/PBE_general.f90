@@ -347,7 +347,7 @@ subroutine pbe_ice_update(time, dt, jet_temp, jet_rho)
 
 !**********************************************************************************************
 
-  subroutine pbe_ice_update_LES(time, jet_temp, jet_rho, jet_XH2O)
+  subroutine pbe_ice_update_LES(time, dt, jet_temp, jet_rho, jet_XH2O)
 
     !**********************************************************************************************
     !
@@ -360,7 +360,7 @@ subroutine pbe_ice_update(time, dt, jet_temp, jet_rho)
   
     implicit none
 
-    double precision, intent(in)                  :: time
+    double precision, intent(in)                  :: time,dt
     double precision, intent(out)                  :: jet_temp, jet_rho, jet_XH2O
     double precision :: a_T, b_T, a_XH2O, b_XH2O, c_XH2O, d_XH2O
 
@@ -402,9 +402,10 @@ subroutine pbe_ice_update(time, dt, jet_temp, jet_rho)
       else
         p_water = Smw_time_series(step_update)*p_sat_liq
         Smw = p_water/p_sat_liq
+        Production_Sw = (Smw - Smw_prev)/dt 
       endif     
     endif
-
+    Smw_prev = Smw
     ! Jet moist air density
     jet_rho = amb_p/(gascon/M_air*(jet_temp*(1.0_8+0.61_8*((p_water/p_sat_liq)*0.622_8*((611.2_8*exp(17.67_8*(jet_temp-273.15)/((jet_temp-273.15)+243.5_8)))/amb_p)))))
 
