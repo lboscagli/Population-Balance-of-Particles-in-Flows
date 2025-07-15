@@ -276,7 +276,7 @@ contains
     g_coeff2 = 2.0 / 3.0 
     if (drdt .ge. 0) then
        g_coeff1 = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
-       Loss_Sw = Loss_Sw + (amb_p/p_water_sat_liq/epsilon_fluid) * pi * rho_w / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
+       Loss_Sw = Loss_Sw + (amb_p/p_water_sat_liq/epsilon_fluid) * pi * part_den / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
     else
        g_coeff1 = 0.0
     endif
