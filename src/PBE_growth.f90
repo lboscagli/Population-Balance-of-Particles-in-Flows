@@ -64,9 +64,10 @@ else if (growth_function>=4) then
   
 
   if (growth_function==4) then
+    call pbe_freezing_temperature(index, T_frz)
     !Depositional growth model activation (Karcher et al. 1996)
-    if (Smw .ge. 1.0) then !SAC criterion
-      call pbe_depositional_growth_ice(index,ni,g_coeff1,g_coeff2)  
+    if (((p_water .ge. p_sat_liq) .and. (current_temp > T_frz)) .or. ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz))) then !SAC criterion
+      call pbe_depositional_growth_ice(index,ni,g_coeff1,g_coeff2)   
     else
       g_coeff1 =0.0
       g_coeff2 =0.0

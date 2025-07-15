@@ -49,7 +49,8 @@ double precision :: jet_cl_model, diameter_jet, u_0j, T_0j, current_temp, curren
 double precision :: tau_g
 double precision :: kappa !hygroscopicity
 real :: Loss_Sw !Saturation consumption
-real :: Smw !Saturation ratio along the mixingline with no particles
+real :: Production_Sw !Saturation production
+real :: Smw, Smw_prev !Saturation ratio along the mixingline with no particles
 real(kind=8) :: S_vc !Critical saturation ratio for aerosol droplet with specific dry radius and hygroscopicity
 real(kind=8) :: r_vc !Critical radius for aerosol particle to activate - this is dummy as we actually specify a wet radius for the nuclei 
 real, allocatable :: Smw_time_series(:)
@@ -268,7 +269,7 @@ subroutine pbe_ice_read()
   
 end subroutine pbe_ice_read
 
-subroutine pbe_ice_update(time, jet_temp, jet_rho)
+subroutine pbe_ice_update(time, dt, jet_temp, jet_rho)
 
   !**********************************************************************************************
   !
@@ -282,7 +283,7 @@ subroutine pbe_ice_update(time, jet_temp, jet_rho)
   
     implicit none
 
-    double precision, intent(in)                  :: time
+    double precision, intent(in)                  :: time, dt
     double precision, intent(out)                  :: jet_temp, jet_rho
     double precision :: epsilon_t, beta, x_m, r_0j, tau_m, p_water_amb
 
@@ -330,9 +331,11 @@ subroutine pbe_ice_update(time, jet_temp, jet_rho)
       !Water vapor partial pressure along the mixing line
       p_water = Smw*p_sat_liq
     else
+      Production_Sw = (Smw - Smw_prev)/dt 
       p_water = Smw_time_series(step_update)*p_sat_liq
     endif
   
+    Smw_prev = Smw
     ! Jet moist air density
     jet_rho = amb_p/(gascon/M_air*(jet_temp*(1.0_8+0.61_8*((p_water/p_sat_liq)*0.622_8*((611.2_8*exp(17.67_8*(jet_temp-273.15)/((jet_temp-273.15)+243.5_8)))/amb_p)))))
     !write(*,*) 'Moist air density',jet_rho

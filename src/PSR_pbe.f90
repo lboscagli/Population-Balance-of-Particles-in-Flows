@@ -10,7 +10,7 @@ subroutine psr_pbe()
   !
   !**********************************************************************************************
   use pbe_mod, only: growth_function, jet_cl_model, amb_temp, amb_rho, current_temp, current_rho, p_water, tau_g, current_XH2O, dv, m
-  use pbe_mod, only: Loss_Sw, Smw, p_sat_liq, amb_p, G_mixing_line, Smw_time_series, step_update, activation_logical, consumption_logical
+  use pbe_mod, only: Loss_Sw, Production_Sw, Smw, p_sat_liq, amb_p, G_mixing_line, Smw_time_series, step_update, activation_logical, consumption_logical
   use pbe_mod, only: plume_cooling_rate, T_time_series
   use ice_microphys_mod
   
@@ -76,7 +76,7 @@ subroutine psr_pbe()
   ! Update the thermodynamic state if ice growth and if jet centerline model is activated
   if ((growth_function>=4).and.(jet_cl_model>0)) then
     if (jet_cl_model==1) then
-      call pbe_ice_update(current_time, current_temp, current_rho)
+      call pbe_ice_update(current_time, dt, current_temp, current_rho)
     elseif (jet_cl_model==2) then
       write(*,*) 'Using LES data...'
       call pbe_ice_update_LES(current_time, current_temp, current_rho, current_XH2O)
@@ -105,7 +105,10 @@ subroutine psr_pbe()
       
       !Supersaturation consumption
       if ((i_step > 1) .and. (consumption_logical)) then
-        Smw_time_series(i_step) = Smw_time_series(i_step-1) + ((Smw_time_series(i_step)-Smw_time_series(i_step-1))/dt - Loss_Sw)*dt
+        !write(*,*) 'Derivative',(Smw_time_series(i_step)-Smw_time_series(i_step-1))/dt
+        !write(*,*) 'Production',Production_Sw
+        !Smw_time_series(i_step) = Smw_time_series(i_step-1) + ((Smw_time_series(i_step)-Smw_time_series(i_step-1))/dt - Loss_Sw)*dt
+        Smw_time_series(i_step) = Smw_time_series(i_step-1) + (Production_Sw - Loss_Sw)*dt 
         plume_cooling_rate = (T_time_series(i_step) - T_time_series(i_step-1))/dt
       endif   
       p_water = Smw_time_series(i_step) * p_sat_liq
@@ -158,7 +161,7 @@ subroutine psr_pbe()
     ! Update the thermodynamic state if ice growth and if jet centerline model is activated
     if ((growth_function>=4).and.(jet_cl_model>0)) then
       if (jet_cl_model==1) then
-        call pbe_ice_update(current_time, current_temp, current_rho)
+        call pbe_ice_update(current_time, dt, current_temp, current_rho)
       elseif (jet_cl_model==2) then
         call pbe_ice_update_LES(current_time, current_temp, current_rho, current_XH2O)
       endif
