@@ -810,7 +810,7 @@ do i=1,m
     nitemp(i) = ni(i)
   end if
 end do
-if (growth_function==4) then
+if (growth_function>=4) then
   if (jet_cl_model>0) then
     ! Convert integer to string
     write(i_step_str, '(I0)') i_step
