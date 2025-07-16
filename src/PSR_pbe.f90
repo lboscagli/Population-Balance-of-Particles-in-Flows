@@ -34,7 +34,7 @@ subroutine psr_pbe()
   call pbe_read(n_pbe_grid)
   allocate(ni(n_pbe_grid))
   call pbe_grid()
-  call pbe_init(ni)
+  call pbe_init(ni)   
   
   ! Read PSR input data
   open(30,file='psr/psr.in')
@@ -84,7 +84,9 @@ subroutine psr_pbe()
   endif
   
   !----------------------------------------------------------------------------------------------
-  
+
+ 
+
   ! Integration
   
   ! Write initial moments
@@ -131,19 +133,19 @@ subroutine psr_pbe()
   
     ! Calculate moments
     call pbe_moments(ni,moment,meansize)
-  
-    if (growth_function>=4) then
-      if ((moment(0)==0) .and. (Smw.le.1.0)) then
-        call pbe_init(ni)
-        do i=1,m
-          ni(i) = ni(i) / dv(i)
-        end do
-        call pbe_moments(ni,moment,meansize)
-      !else 
-        !write(*,*) 'moment(0) is no longer zero so ice growth starts'
-      endif
-    endif
-  
+
+ 
+    !if (growth_function>=4) then
+    !  if (moment(0)==0) then
+    !    call pbe_init(ni)
+    !    do i=1,m
+    !      ni(i) = ni(i) / dv(i)
+    !    end do
+    !    call pbe_moments(ni,moment,meansize)
+    !  !else 
+    !    !write(*,*) 'moment(0) is no longer zero so ice growth starts'
+    !  endif
+    !endif
   
     ! Write moments
     current_time = current_time + dt

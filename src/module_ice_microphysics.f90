@@ -254,7 +254,7 @@ contains
     !Mass (M) diffusion term
     F_M = (gascon/M_water)*current_temp/dv_cont(current_temp, amb_p)
     !Heat (H) diffusion term
-    F_H = S_v * (latent_heat_cond_evap(current_temp))**2 / (gascon/M_water) / kair_conductivity(current_temp) / current_temp**2
+    F_H = (S_v*p_water_sat_liq) * (latent_heat_cond_evap(current_temp))**2 / (gascon/M_water) / kair_conductivity(current_temp) / current_temp**2
     !correction for mass diffusion term to account for non continuum effects (large knudsen)
     lambda_v = 2 * dv_cont(current_temp, amb_p) * SQRT(1.0 / (2 * (gascon/M_water) * current_temp))
     Kn_v = lambda_v / r_part
@@ -265,7 +265,7 @@ contains
     beta_H = (Kn_a + 1.0) / ((4.0/3.0/1.0 + 0.377) * Kn_a  + (4.0/3.0/1.0) * Kn_a**2)
     
     !Compute droplet mass growth 
-    dmdt = (4*pi*r_part) * (Smw_time_series(step_update)*p_water_sat_liq - p_water_sat_liq) / (F_m/beta_M + F_H*beta_H)
+    dmdt = (4*pi*r_part) * (Smw_time_series(step_update)*p_water_sat_liq - S_v*p_water_sat_liq) / (F_m/beta_M + F_H*beta_H)
 
     !Compute droplet radial growth 
     drdt = dmdt / (4 * pi * part_den * r_part**2)
@@ -351,12 +351,12 @@ contains
     !correction for heat diffusion term to account for non continuum effects (large knudsen)
     lambda_a = 0.8 * kair_conductivity(current_temp) * current_temp / amb_p * SQRT(1.0 / (2 * (gascon/M_air) * current_temp)) 
     rho_air_dry = amb_p / current_temp / (gascon/M_air)
-    beta_k = r_part / (r_part + lambda_a) + (4 * kair_conductivity(current_temp))/(0.7 * r_part * Cp * mean_thermal_speed(current_temp) * rho_air_dry)
+    beta_k = r_part / (r_part + lambda_a) + (4 * kair_conductivity(current_temp))/(0.7 * Cp * mean_thermal_speed(current_temp) * rho_air_dry)
       
 
     !Compute droplet mass growth - spherical assumption (C=1.0)
     denom_dmdt = ((dv_cont(current_temp, amb_p)*(beta_v**(-1))*latent_heat_dep_sub(current_temp)*S_v*p_water_sat_ice) / (kair_conductivity(current_temp) * (beta_k**(-1)) * (beta_v**(-1)) * current_temp))  * (latent_heat_dep_sub(current_temp) / ((gascon/M_water) * current_temp) - 1.0) + (gascon/M_water) * current_temp
-    dmdt = (4*pi*r_part * 1.0) * dv_cont(current_temp, amb_p) * (1.0/beta_v) * (Smw_time_series(step_update)*p_water_sat_liq - p_water_sat_ice) / denom_dmdt
+    dmdt = (4*pi*r_part * 1.0) * dv_cont(current_temp, amb_p) * (1.0/beta_v) * (Smw_time_series(step_update)*p_water_sat_liq - S_v*p_water_sat_ice) / denom_dmdt
 
     !Compute droplet radial growth 
     drdt = dmdt / (4 * pi * part_den * r_part**2)

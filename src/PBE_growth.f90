@@ -90,7 +90,7 @@ else if (growth_function>=4) then
         g_coeff2 = 0.0  
       endif
     else
-      call kohler_crit(current_temp, (3.0 / (4.0 * 3.141592653589793E+00) * v0)**(1.0/3.0), kappa, .true., r_vc, S_vc)
+      call kohler_crit(current_temp, (3.0 / (4.0 * 3.141592653589793E+00) * v0)**(1.0/3.0), kappa, .false., r_vc, S_vc)
       S_vc = S_vc + 1.0
       if (Smw_time_series(step_update) .ge. S_vc) then
         activation_logical = .true.
