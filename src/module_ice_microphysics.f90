@@ -555,7 +555,7 @@ contains
   !
   !**********************************************************************************************
 
-    use pbe_mod, only :v0, v_m, m, dv !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
+    use pbe_mod, only :v0, v_m, m, dv, v !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
     use pbe_mod, only :current_temp, plume_cooling_rate
     use thermo
 
@@ -572,7 +572,7 @@ contains
     
 
     !Compute liquid water volume (LWV)
-    LWV = v_m(index) - v0
+    LWV = v(index) - v0
 
     !COmpute freezing rate coefficient
     J_freez_rate_coeff = 1E6 * exp(a_1*current_temp + a_2)

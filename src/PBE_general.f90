@@ -56,6 +56,7 @@ real(kind=8) :: r_vc !Critical radius for aerosol particle to activate - this is
 real, allocatable :: Smw_time_series(:)
 double precision, allocatable :: T_time_series(:) !plume temperature time series
 double precision :: plume_cooling_rate !plume cooling rate
+double precision :: T_frz ! Luca - freezing temperature
 
 logical :: activation_logical !Water droplet activation flag (initialize as .false. and then check saturation)
 logical :: consumption_logical !Flag for user activation of consumption of supersaturation based on K15 model
@@ -332,9 +333,9 @@ subroutine pbe_ice_update(time, dt, jet_temp, jet_rho)
       p_water = Smw*p_sat_liq
     else
       Production_Sw = (Smw - Smw_prev)/dt 
-      p_water = Smw_time_series(step_update)*p_sat_liq
+      p_water = Smw_time_series(step_update)*p_sat_liq   
     endif
-  
+
     Smw_prev = Smw
     ! Jet moist air density
     jet_rho = amb_p/(gascon/M_air*(jet_temp*(1.0_8+0.61_8*((p_water/p_sat_liq)*0.622_8*((611.2_8*exp(17.67_8*(jet_temp-273.15)/((jet_temp-273.15)+243.5_8)))/amb_p)))))

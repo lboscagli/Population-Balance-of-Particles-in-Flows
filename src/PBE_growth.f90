@@ -38,7 +38,6 @@ double precision :: nr                !< Number density in right cell
 double precision :: nrr               !< Number density in right-right cell
 double precision :: eps               !< Tolerance for upwind ratio
 double precision :: rl,rr             !< r+ at left and right surface
-double precision :: T_frz ! Luca - freezing temperature
 
 parameter(eps = 1.D1*epsilon(1.D0))
 
@@ -66,7 +65,7 @@ else if (growth_function>=4) then
   if (growth_function==4) then
     call pbe_freezing_temperature(index, T_frz)
     !Depositional growth model activation (Karcher et al. 1996)
-    if (((p_water .ge. p_sat_liq))) then ! .and. (current_temp > T_frz)) .or. ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz))) then !SAC criterion
+    if (((p_water .ge. p_sat_liq) .and. (current_temp > T_frz)) .or. ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz))) then !SAC criterion
       call pbe_depositional_growth_ice(index,ni,g_coeff1_l,g_coeff1_r,g_coeff2)   
     else
       g_coeff1_l =0.0
@@ -81,7 +80,7 @@ else if (growth_function>=4) then
   elseif (growth_function==5) then
     ! Compute freezing temperature neeeded to check if freezing-relaxation starts based on freezing temperature
     ! Note that freezing temperature depends on liquid volume available for freezing (i.e., depends on (v(index)-v_0))
-    call pbe_freezing_temperature(index, T_frz)
+    call pbe_freezing_temperature(index-1, T_frz)
 
     !Droplet activation and growth based on Ponsonby et al. 2025
     if (activation_logical) then 
