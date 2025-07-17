@@ -572,7 +572,7 @@ contains
     
 
     !Compute liquid water volume (LWV)
-    LWV = v(index) - v0
+    LWV = v_m(index) - v0
 
     !COmpute freezing rate coefficient
     J_freez_rate_coeff = 1E6 * exp(a_1*current_temp + a_2)
