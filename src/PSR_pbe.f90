@@ -118,6 +118,7 @@ subroutine psr_pbe()
         if (jet_cl_model .eq. 1) then
           p_water = p_sat_ice
           Smw_time_series(i_step) = p_water/p_sat_liq        
+        endif
       endif
 
 
