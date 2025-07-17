@@ -40,7 +40,7 @@ double precision, allocatable, dimension(:) :: nuc
 double precision v0,grid_lb,grid_rb
 double precision agg_kernel_const
 double precision break_const
-double precision g_coeff1,g_coeff2
+double precision g_coeff1,g_coeff2,g_coeff1_l,g_coeff1_r
 double precision nuc1
 double precision N0
 

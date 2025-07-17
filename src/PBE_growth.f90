@@ -67,11 +67,17 @@ else if (growth_function>=4) then
     call pbe_freezing_temperature(index, T_frz)
     !Depositional growth model activation (Karcher et al. 1996)
     if (((p_water .ge. p_sat_liq) .and. (current_temp > T_frz)) .or. ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz))) then !SAC criterion
-      call pbe_depositional_growth_ice(index,ni,g_coeff1,g_coeff2)   
+      call pbe_depositional_growth_ice(index,ni,g_coeff1_l,g_coeff1_r,g_coeff2)   
     else
-      g_coeff1 =0.0
+      g_coeff1_l =0.0
+      g_coeff1_r =0.0
       g_coeff2 =0.0
     endif
+    ! right growth rate
+    g_termr = g_coeff1_r*(v(index)**g_coeff2)
+
+    ! left growth rate
+    g_terml = g_coeff1_l*(v(index-1)**g_coeff2)  
   elseif (growth_function==5) then
     ! Compute freezing temperature neeeded to check if freezing-relaxation starts based on freezing temperature
     ! Note that freezing temperature depends on liquid volume available for freezing (i.e., depends on (v(index)-v_0))
@@ -81,10 +87,10 @@ else if (growth_function>=4) then
     if (activation_logical) then 
       if ((p_water .ge. p_sat_liq) .and. (current_temp > T_frz)) then
         !write(*,*) 'Condensational growth'
-        call pbe_condensational_droplet_growth_Bier(index, ni, g_coeff1,g_coeff2)  
+        call pbe_condensational_droplet_growth_Bier(index, ni, g_coeff1_l,g_coeff1_r,g_coeff2) 
       elseif ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz)) then 
         !write(*,*) 'Depositional growth'
-        call pbe_depositional_growth_ice_Bier(index, ni, g_coeff1,g_coeff2) 
+        call pbe_depositional_growth_ice_Bier(index, ni, g_coeff1_l,g_coeff1_r,g_coeff2) 
       else
         g_coeff1 = 0.0
         g_coeff2 = 0.0  
@@ -94,17 +100,22 @@ else if (growth_function>=4) then
       S_vc = S_vc + 1.0
       if (Smw_time_series(step_update) .ge. S_vc) then
         activation_logical = .true.
-        call pbe_condensational_droplet_growth_Bier(index, ni, g_coeff1,g_coeff2)
+        call pbe_condensational_droplet_growth_Bier(index, ni, g_coeff1_l,g_coeff1_r,g_coeff2)
       else
         g_coeff1 = 0.0
         g_coeff2 = 0.0
       endif
     endif
-  endif
-  
-  g_termr = g_coeff1*(v(index)**g_coeff2)
-  g_terml = g_coeff1*(v(index-1)**g_coeff2)  
 
+    ! right growth rate
+    g_termr = g_coeff1_r*(v(index)**g_coeff2)
+
+    ! left growth rate
+    g_terml = g_coeff1_l*(v(index-1)**g_coeff2) 
+  endif
+
+
+  !Evaluate mean for growth rate computatio
   g_term_m = 0.5*(g_termr+g_terml)
 
 end if

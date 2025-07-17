@@ -2,7 +2,7 @@ module ice_microphys_mod
   implicit none
   private
   public :: append_scalar, saturation_ratio, p_sat_ice_murphy_koop, p_sat_liq_murphy_koop
-  public :: pbe_condensational_droplet_growth, pbe_condensational_droplet_growth_Bier, pbe_depositional_growth_ice_Bier, pbe_depositional_growth_ice, pbe_freezing_temperature
+  public :: pbe_condensational_droplet_growth_Bier, pbe_depositional_growth_ice_Bier, pbe_depositional_growth_ice, pbe_freezing_temperature
 contains
 
 !---------------------------------------------------------------------------------------------------
@@ -115,86 +115,7 @@ contains
     call move_alloc(tmp, arr)
   end subroutine append_scalar
 
-  subroutine pbe_condensational_droplet_growth(index, ni, g_coeff1,g_coeff2)
-
-  !**********************************************************************************************
-  !
-  ! Computation of g_coeff1 from kinetic growth model. The model applies between activation-relaxation
-  ! and freezing-relaxation point where the 
-  !
-  ! Based on Karcher et al. 2015, Bier et al. 2021 and Ponsonby et al. 2025
-  !    
-  ! Luca Boscagli 04/07/2025
-  !
-  !**********************************************************************************************
-  
-    use pbe_mod, only :v0, v_m, m, dv !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
-    use pbe_mod, only :current_temp, amb_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
-    use pbe_mod, only :Smw_time_series, step_update, r_vc, S_vc
-    use thermo
-
-    implicit none
-  
-    integer, intent(in)  :: index
-    double precision, dimension(m), intent(in) :: ni
-    double precision, intent(out)              :: g_coeff1, g_coeff2
-
-    double precision :: p_water_sat_ice,p_water_sat_liq, S_v, S_e !,RH,amb_temp,amb_p,amb_rho
-    double precision :: r_part,r_nuc
-    double precision :: drdt
-    double precision :: part_den !, part_den_l, part_den_r
-    double precision :: Fd, Fk
-    real,parameter :: pi = 3.141592653589793E+00
-    real(kind=8) :: accom=1.0, r_crit, s_crit
-    double precision :: gascon=8314.3
-    
-
-    !Compute droplet particle radius and nucleri (dry) radius from the volume
-    r_part = (3.0 / (4.0 * pi) * v_m(index))**(1.0/3.0)  ! radius of spherically assumed particles computed from the volume at the middle of each bin v_m
-    r_nuc = (3.0 / (4.0 * pi) * v0)**(1.0/3.0)        ! radius of the nuclei (samllest particle volume) - this is constant
-
-    !Compute equilibrium saturation ratio over the particle
-    if (r_part .eq. r_nuc) then
-      S_v = S_vc
-    else  
-      S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
-      S_v = S_v + 1.0   
-    endif
-
-    ! Saturation presure over liquid
-    call p_sat_liq_murphy_koop(p_water_sat_liq)
-
-    ! Enivoronmental saturation ratio
-    ! this is assuming that at ambient condition we are saturated relative to ice, hence 1.0
-    S_e = (1.0 * (EXP(9.550426 - 5723.265/amb_temp + 3.53068 * LOG(amb_temp) -  0.00728332 * amb_temp))) / p_water_sat_liq 
-
-
-    !Compute growth coefficient G=1/(Fk+Fd) based on Rogers and Yau (1996)
-    Fk = Lw*rho_w/(4 * ka_corr(current_temp, current_rho, r_part) * current_temp) * (Lw*Mw/(gascon*current_temp) - 1.0) !thermodynamic term associated to heat conduction
-    Fd = rho_w * gascon * current_temp / (4 * Mw * dv_corr(current_temp, r_part, amb_p, accom) * p_water_sat_liq) !term associated with vapor diffusion
-
-    drdt = (1.0 / (Fk + Fd)) * (1 / r_part) * (Smw_time_series(step_update) - S_v) 
-  
-    !Plot to screen for debugging
-    !write(*,*) 'Smw',Smw_time_series(step_update)
-    !write(*,*) 'S_v',S_v
-    !write(*,*) 'Fk',Fk
-    !write(*,*) 'Fd',Fd
-    !write(*,*) 'r_part',r_part
-
-    g_coeff2 = 2.0 / 3.0 
-    if (drdt .ge. 0) then
-       g_coeff1 = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
-       Loss_Sw = Loss_Sw + (amb_p/p_water_sat_liq/epsilon_fluid) * pi * rho_w / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
-    else
-       g_coeff1 = 0.0
-    endif
-
-    
-  
-  end subroutine pbe_condensational_droplet_growth  
-
-  subroutine pbe_condensational_droplet_growth_Bier(index, ni, g_coeff1,g_coeff2)
+  subroutine pbe_condensational_droplet_growth_Bier(index, ni, g_coeff1_l,g_coeff1_r,g_coeff2)
 
   !**********************************************************************************************
   !
@@ -207,7 +128,7 @@ contains
   !
   !**********************************************************************************************
   
-    use pbe_mod, only :v0, v_m, m, dv !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
+    use pbe_mod, only :v0, v_m, m, dv, v !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
     use pbe_mod, only :current_temp, amb_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
     use pbe_mod, only :Smw_time_series, step_update, r_vc, S_vc
     use thermo
@@ -216,7 +137,7 @@ contains
   
     integer, intent(in)  :: index
     double precision, dimension(m), intent(in) :: ni
-    double precision, intent(out)              :: g_coeff1, g_coeff2
+    double precision, intent(out)              :: g_coeff1_l,g_coeff1_r, g_coeff2
 
     double precision :: p_water_sat_ice,p_water_sat_liq, S_v, S_e !,RH,amb_temp,amb_p,amb_rho
     double precision :: r_part,r_nuc
@@ -230,9 +151,10 @@ contains
     double precision :: M_water = 18.016 ! molar weight of water [kg/mol]
     double precision :: M_air = 28.96 ! molar weight of dry air [kg/mol]
     
+    !Right side
 
     !Compute droplet particle radius and nucleri (dry) radius from the volume
-    r_part = (3.0 / (4.0 * pi) * v_m(index))**(1.0/3.0)  ! radius of spherically assumed particles computed from the volume at the middle of each bin v_m
+    r_part = (3.0 / (4.0 * pi) * v(index))**(1.0/3.0)  ! radius of spherically assumed particles computed from the volume at the middle of each bin v_m
     r_nuc = (3.0 / (4.0 * pi) * v0)**(1.0/3.0)        ! radius of the nuclei (samllest particle volume) - this is constant
  
     ! particle density
@@ -275,17 +197,62 @@ contains
 
     g_coeff2 = 2.0 / 3.0 
     if (drdt .ge. 0) then
-       g_coeff1 = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
+       g_coeff1_r = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
        Loss_Sw = Loss_Sw + (amb_p/p_water_sat_liq/epsilon_fluid) * pi * part_den / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
     else
-       g_coeff1 = 0.0
+       g_coeff1_r = 0.0
     endif
 
+    !Left side
+
+    !Compute droplet particle radius from the volume
+    r_part = (3.0 / (4.0 * pi) * v(index-1))**(1.0/3.0)  ! radius of spherically assumed particles computed from the volume at the middle of each bin v_m
+  
+    ! particle density
+    part_den = (part_den_l * r_nuc**3.0 + rho_w * &
+                            (r_part**3.0 - r_nuc**3.0)) / r_part**3.0  ! particle density
+
+    !Compute equilibrium saturation ratio over the particle
+    if (r_part .eq. r_nuc) then
+      S_v = S_vc
+    else  
+      S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+      S_v = S_v + 1.0   
+    endif
+
+    
+    !Mass (M) diffusion term
+    F_M = (gascon/M_water)*current_temp/dv_cont(current_temp, amb_p)
+    !Heat (H) diffusion term
+    F_H = (S_v*p_water_sat_liq) * (latent_heat_cond_evap(current_temp))**2 / (gascon/M_water) / kair_conductivity(current_temp) / current_temp**2
+    !correction for mass diffusion term to account for non continuum effects (large knudsen)
+    lambda_v = 2 * dv_cont(current_temp, amb_p) * SQRT(1.0 / (2 * (gascon/M_water) * current_temp))
+    Kn_v = lambda_v / r_part
+    beta_M = (Kn_v + 1.0) / ((4.0/3.0/1.0 + 0.377) * Kn_v  + (4.0/3.0/1.0) * Kn_v**2)
+    !correction for heat diffusion term to account for non continuum effects (large knudsen)
+    lambda_a = 0.8 * kair_conductivity(current_temp) * current_temp / amb_p * SQRT(1.0 / (2 * (gascon/M_air) * current_temp)) 
+    Kn_a = lambda_a / r_part    
+    beta_H = (Kn_a + 1.0) / ((4.0/3.0/1.0 + 0.377) * Kn_a  + (4.0/3.0/1.0) * Kn_a**2)
+    
+    !Compute droplet mass growth 
+    dmdt = (4*pi*r_part) * (Smw_time_series(step_update)*p_water_sat_liq - S_v*p_water_sat_liq) / (F_m/beta_M + F_H*beta_H)
+
+    !Compute droplet radial growth 
+    drdt = dmdt / (4 * pi * part_den * r_part**2)
+
+    !write(*,*) 'Condensational growth'
+    !write(*,*) 'drdt',drdt
+
+    if (drdt .ge. 0) then
+       g_coeff1_l = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
+    else
+       g_coeff1_l = 0.0
+    endif
     
   
   end subroutine pbe_condensational_droplet_growth_Bier   
 
-  subroutine pbe_depositional_growth_ice_Bier(index, ni, g_coeff1,g_coeff2)
+  subroutine pbe_depositional_growth_ice_Bier(index, ni, g_coeff1_l,g_coeff1_r,g_coeff2)
 
   !**********************************************************************************************
   !
@@ -298,7 +265,7 @@ contains
   !
   !**********************************************************************************************
   
-    use pbe_mod, only :v0, v_m, m, dv !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
+    use pbe_mod, only :v0, v_m, m, dv, v !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
     use pbe_mod, only :current_temp, amb_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
     use pbe_mod, only :Smw_time_series, step_update, r_vc, S_vc
     use thermo
@@ -307,7 +274,7 @@ contains
   
     integer, intent(in)  :: index
     double precision, dimension(m), intent(in) :: ni
-    double precision, intent(out)              :: g_coeff1, g_coeff2
+    double precision, intent(out)              :: g_coeff1_l,g_coeff1_r, g_coeff2
 
     double precision :: p_water_sat_ice,p_water_sat_liq, S_v !,RH,amb_temp,amb_p,amb_rho
     double precision :: r_part,r_nuc,den_ice
@@ -322,9 +289,10 @@ contains
     double precision :: M_air = 28.96 ! molar weight of dry air [kg/mol]
     !double precision :: Cp = 1004.0 !! specific heat of dry air at const. pressure [J/kg/K]
     
+    !Right side
 
     !Compute droplet particle radius and nucleri (dry) radius from the volume
-    r_part = (3.0 / (4.0 * pi) * v_m(index))**(1.0/3.0)  ! radius of spherically assumed particles computed from the volume at the middle of each bin v_m
+    r_part = (3.0 / (4.0 * pi) * v(index))**(1.0/3.0)  ! radius of spherically assumed particles computed from the volume at the middle of each bin v_m
     r_nuc = (3.0 / (4.0 * pi) * v0)**(1.0/3.0)        ! radius of the nuclei (samllest particle volume) - this is constant
 
     ! Constant ice particle density 
@@ -365,16 +333,57 @@ contains
 
     g_coeff2 = 2.0 / 3.0 
     if (drdt .ge. 0) then
-       g_coeff1 = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
+       g_coeff1_r = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
        Loss_Sw = Loss_Sw + (amb_p/p_water_sat_liq/epsilon_fluid) * pi * part_den / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
     else
-       g_coeff1 = 0.0
+       g_coeff1_r = 0.0
     endif
-         
+
+    !Left side
+
+    !Compute droplet particle radius  from the volume
+    r_part = (3.0 / (4.0 * pi) * v(index-1))**(1.0/3.0)  ! radius of spherically assumed particles computed from the volume at the middle of each bin v_m
+
+    ! particle density
+    part_den = (part_den_l * r_nuc**3.0 + den_ice * &
+                            (r_part**3.0 - r_nuc**3.0)) / r_part**3.0  ! particle density
+
+    !Compute equilibrium saturation ratio over the particle
+    if (r_part .eq. r_nuc) then
+      S_v = S_vc
+    else  
+      S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+      S_v = S_v + 1.0   
+    endif
+
+
+    !correction for mass diffusion term to account for non continuum effects (large knudsen)
+    lambda_v = 2 * dv_cont(current_temp, amb_p) * SQRT(1.0 / (2 * (gascon/M_water) * current_temp))
+    beta_v = r_part / (r_part + lambda_v) + (4 * 1.0 * dv_cont(current_temp, amb_p))/(0.5 * r_part * mean_thermal_speed(current_temp))  
+    !correction for heat diffusion term to account for non continuum effects (large knudsen)
+    lambda_a = 0.8 * kair_conductivity(current_temp) * current_temp / amb_p * SQRT(1.0 / (2 * (gascon/M_air) * current_temp)) 
+    rho_air_dry = amb_p / current_temp / (gascon/M_air)
+    beta_k = r_part / (r_part + lambda_a) + (4 * kair_conductivity(current_temp))/(0.7 * Cp * mean_thermal_speed(current_temp) * rho_air_dry)
+      
+
+    !Compute droplet mass growth - spherical assumption (C=1.0)
+    denom_dmdt = ((dv_cont(current_temp, amb_p)*(beta_v**(-1))*latent_heat_dep_sub(current_temp)*S_v*p_water_sat_ice) / (kair_conductivity(current_temp) * (beta_k**(-1)) * (beta_v**(-1)) * current_temp))  * (latent_heat_dep_sub(current_temp) / ((gascon/M_water) * current_temp) - 1.0) + (gascon/M_water) * current_temp
+    dmdt = (4*pi*r_part * 1.0) * dv_cont(current_temp, amb_p) * (1.0/beta_v) * (Smw_time_series(step_update)*p_water_sat_liq - S_v*p_water_sat_ice) / denom_dmdt
+
+    !Compute droplet radial growth 
+    drdt = dmdt / (4 * pi * part_den * r_part**2)
+    !write(*,*) 'Depositional growth'
+    !write(*,*) 'drdt',drdt
+
+    if (drdt .ge. 0) then
+       g_coeff1_l = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
+    else
+       g_coeff1_l = 0.0
+    endif    
   
   end subroutine pbe_depositional_growth_ice_Bier  
 
-  subroutine pbe_depositional_growth_ice(index, ni, g_coeff1,g_coeff2)
+  subroutine pbe_depositional_growth_ice(index, ni, g_coeff1_l,g_coeff1_r,g_coeff2)
 
   !**********************************************************************************************
   !
@@ -393,7 +402,7 @@ contains
     !use arrays, only : p,ajc
     !use chemistry, only : nsp,fsc,temp,sumn,names,wm
     !use euler_part_interface
-    use pbe_mod, only :v0, v_m, m, dv !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
+    use pbe_mod, only :v0, v_m, m, dv, v !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
     use pbe_mod, only :current_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, Loss_Sw, current_rho  
     use thermo
 
@@ -402,7 +411,7 @@ contains
   !class(pbe_growth) :: this
     integer, intent(in)  :: index
     double precision, dimension(m), intent(in) :: ni
-    double precision, intent(out)              :: g_coeff1, g_coeff2
+    double precision, intent(out)              :: g_coeff1_l,g_coeff1_r, g_coeff2
     !integer :: isp
     double precision :: p_water_sat_ice,p_water_sat_liq !,RH,amb_temp,amb_p,amb_rho
     double precision :: M_water !,M_air, X_water
@@ -444,11 +453,12 @@ contains
     ! Constant ice particle density 
     den_ice = 917.0  
   
-    ! radius of spherically assumed particles computed from the volume at the middle of each bin v_m
-    r_part = (3.0 / (4.0 * pi) * v_m(index))**(1.0/3.0)
     ! radius of the nuclei (samllest particle volume) - this is constant  
     r_nuc = (3.0 / (4.0 * pi) * v0)**(1.0/3.0)        
-  
+
+    ! radius of spherically assumed particles computed from the volume at the middle of each bin v_m
+    r_part = (3.0 / (4.0 * pi) * v(index))**(1.0/3.0)    
+    
     ! particle density
     part_den = (part_den_l * r_nuc**3.0 + den_ice * &
                             (r_part**3.0 - r_nuc**3.0)) / r_part**3.0  ! particle density
@@ -482,12 +492,46 @@ contains
     ! Compute coefficients needed for growth and supersaturation consumption
     g_coeff2 = 2.0 / 3.0 
     if (drdt .ge. 0) then
-      g_coeff1 = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
+      g_coeff1_r = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
       Loss_Sw = Loss_Sw + (amb_p/p_water_sat_liq/epsilon_fluid) * pi * part_den / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
     else
-       g_coeff1 = 0.0
+       g_coeff1_r = 0.0
     endif    
+
+    !Left side
+    ! radius of spherically assumed particles computed from the volume at the middle of each bin v_m
+    r_part = (3.0 / (4.0 * pi) * v(index-1))**(1.0/3.0)    
+    
+    ! particle density
+    part_den = (part_den_l * r_nuc**3.0 + den_ice * &
+                            (r_part**3.0 - r_nuc**3.0)) / r_part**3.0  ! particle density
   
+    ! knudsen number
+    Kn = lambda_water / r_part   
+    ! deposition coefficient. Higher values of alpha speed up the deposition rate - user input in CPMOD
+    ! alpha_ice = 0.1 
+  
+    ! collision factor (G), accounts for transition from gas kinetic energy (G->1 for Kn->0) to continuum regime (G->0 for Kn->1)
+    coll_factor = 1.0 / (1.0 / (1.0 + Kn) + 4.0 / 3.0 * Kn / alpha_ice) 
+  
+    ! nominator of dr/dt 
+    ! [ M_water * p_water_sat_ice / (gascon * current_temp)]: saturated (relative to ice) water vapor density 
+    ! (considering compressibility factor approx = 1)
+    ! This is calling gascon = 8314.3 J/K/kg (in module_chemistry.f90)
+    ! gascon/M_water is the specific gas constant for water vapor, i.e., Rv = 461.52 J/K/kg    
+
+    fornow = dif_water * coll_factor * M_water * (p_water - p_water_sat_ice) &
+            / (gascon * current_temp)   
+
+                                    
+    ! Change in particle radius over time
+    drdt = fornow / (part_den * r_part)     
+
+    if (drdt .ge. 0) then
+      g_coeff1_l = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
+    else
+       g_coeff1_l = 0.0
+    endif    
   !! Luca: the section below is not needed for CPMOD standalone (no coupling with BOFFIN)
   !  dmdt = 4.0 * pi * r_part * fornow
   
