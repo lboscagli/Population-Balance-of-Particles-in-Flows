@@ -113,7 +113,7 @@ subroutine psr_pbe()
       endif   
       p_water = Smw_time_series(i_step) * p_sat_liq
 
-      !Force mixing line to not go beyond ice saturation
+      !Force mixing line to not go below ice saturation - we are forcing persisten contrails conditions for jet model = 1
       if ((p_water<p_sat_ice) .and. (activation_logical)) then
         if (jet_cl_model .eq. 1) then
           p_water = p_sat_ice
