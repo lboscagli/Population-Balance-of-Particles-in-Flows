@@ -118,7 +118,7 @@ else if (growth_function>=4) then
 
   g_coeff1 = g_coeff1_r
 
-  !Evaluate mean for growth rate computatio
+  !Evaluate mean volumetric growth rate for growth rate timescale computation
   g_term_m = 0.5*(g_termr+g_terml)
 
 end if
