@@ -10,7 +10,7 @@ subroutine psr_pbe()
   !
   !**********************************************************************************************
   use pbe_mod, only: growth_function, jet_cl_model, amb_temp, amb_rho, current_temp, current_rho, p_water, tau_g, current_XH2O, dv, m
-  use pbe_mod, only: Loss_Sw, Production_Sw, Smw, p_sat_liq, amb_p, G_mixing_line, Smw_time_series, step_update, activation_logical, consumption_logical
+  use pbe_mod, only: Loss_Sw, Production_Sw, Smw, p_sat_liq, p_sat_ice, amb_p, G_mixing_line, Smw_time_series, step_update, activation_logical, consumption_logical
   use pbe_mod, only: plume_cooling_rate, T_time_series
   use ice_microphys_mod
   
@@ -99,6 +99,7 @@ subroutine psr_pbe()
       
       !Compute and update saturation ratio based on the input data
       call p_sat_liq_murphy_koop(p_sat_liq)
+      call p_sat_ice_murphy_koop(p_sat_ice)
       
       !Append to array
       !call append_scalar(Smw_time_series, Smw)
@@ -111,6 +112,14 @@ subroutine psr_pbe()
         plume_cooling_rate = (T_time_series(i_step) - T_time_series(i_step-1))/dt
       endif   
       p_water = Smw_time_series(i_step) * p_sat_liq
+
+      !Force mixing line to not go beyond ice saturation
+      if ((p_water<p_sat_ice) .and. (activation_logical)) then
+        if (jet_cl_model .eq. 1) then
+          p_water = p_sat_ice
+          Smw_time_series(i_step) = p_water/p_sat_liq        
+      endif
+
 
       !Write to output file
       if (activation_logical) then
