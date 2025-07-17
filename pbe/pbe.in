@@ -18,7 +18,7 @@ PBE INPUT DATA
 2                               ! Initial distribution
 1                               ! First non-zero interval for top-hat distribution
 1                               ! Second non-zero interval for top-hat distribution
-4.5e10                             ! Value for initialising number density
+4.5e11                             ! Value for initialising number density
 1                               ! Integration method
 
 Aggregation kernels:

@@ -92,8 +92,9 @@ else if (growth_function>=4) then
         !write(*,*) 'Depositional growth'
         call pbe_depositional_growth_ice_Bier(index, ni, g_coeff1_l,g_coeff1_r,g_coeff2) 
       else
-        g_coeff1 = 0.0
-        g_coeff2 = 0.0  
+        g_coeff1_l =0.0
+        g_coeff1_r =0.0
+        g_coeff2 =0.0 
       endif
     else
       call kohler_crit(current_temp, (3.0 / (4.0 * 3.141592653589793E+00) * v0)**(1.0/3.0), kappa, .false., r_vc, S_vc)
@@ -102,8 +103,9 @@ else if (growth_function>=4) then
         activation_logical = .true.
         call pbe_condensational_droplet_growth_Bier(index, ni, g_coeff1_l,g_coeff1_r,g_coeff2)
       else
-        g_coeff1 = 0.0
-        g_coeff2 = 0.0
+        g_coeff1_l =0.0
+        g_coeff1_r =0.0
+        g_coeff2 =0.0 
       endif
     endif
 
@@ -114,6 +116,7 @@ else if (growth_function>=4) then
     g_terml = g_coeff1_l*(v(index-1)**g_coeff2) 
   endif
 
+  g_coeff1 = g_coeff1_r
 
   !Evaluate mean for growth rate computatio
   g_term_m = 0.5*(g_termr+g_terml)

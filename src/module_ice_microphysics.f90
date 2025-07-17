@@ -530,7 +530,7 @@ contains
     if (drdt .ge. 0) then
       g_coeff1_l = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
     else
-       g_coeff1_l = 0.0
+      g_coeff1_l = 0.0
     endif    
   !! Luca: the section below is not needed for CPMOD standalone (no coupling with BOFFIN)
   !  dmdt = 4.0 * pi * r_part * fornow
