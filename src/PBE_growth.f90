@@ -68,11 +68,16 @@ else if (growth_function>=4) then
     if (((p_water .ge. p_sat_liq) .and. (current_temp > T_frz)) .or. ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz))) then !SAC criterion
       activation_logical = .true.
       call pbe_depositional_growth_ice(index,ni,g_coeff1_l,g_coeff1_r,g_coeff2)   
+      if (g_coeff1_l .ne. g_coeff1_l_prev) then
+        g_coeff1_l = g_coeff1_l_prev
+      endif
     else
       g_coeff1_l = 0.0
       g_coeff1_r = 0.0
-      g_coeff2 = 0.0
+      g_coeff2 = 0.0      
     endif
+    g_coeff1_l_prev = g_coeff1_r
+
     ! right growth rate
     g_termr = g_coeff1_r*(v(index)**g_coeff2)
 
