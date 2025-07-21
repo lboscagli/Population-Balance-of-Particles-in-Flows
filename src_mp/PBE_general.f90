@@ -61,6 +61,11 @@ double precision :: T_frz ! Luca - freezing temperature
 logical :: activation_logical !Water droplet activation flag (initialize as .false. and then check saturation)
 logical :: consumption_logical !Flag for user activation of consumption of supersaturation based on K15 model
 
+
+!Variable for ice_nucleating_particles.in file
+logical :: inps_distribution_logical !Flag to determine whether or not the initial distribution should be read from the input file
+double precision, allocatable :: kappa_bins(:), part_rho_bins(:), v0_bins(:) !hygroscopicity, mass density and nuclei volume size 
+
 integer m,grid_type
 integer i_gm,solver_pbe
 integer initdis,n_th1,n_th2
@@ -264,6 +269,7 @@ subroutine pbe_ice_read()
   read(30,*) T_0j
   read(30,*) kappa
   read(30,*) consumption_logical
+  read(30,*) inps_distribution_logical
   close(30)
 
   amb_rho = amb_p / amb_temp / (gascon / M_air) 
@@ -480,6 +486,73 @@ end subroutine pbe_init
 
 !**********************************************************************************************
 
+!**********************************************************************************************
+
+subroutine pbe_file_init(ni)
+
+!**********************************************************************************************
+!
+! Re-Initialises PBE data and grid based on external user input file
+!
+! Luca Boscagli 21/07/2025
+!
+!**********************************************************************************************
+
+use pbe_mod
+
+implicit none
+
+double precision, allocatable, intent(inout) :: ni(:)
+! Locals
+integer :: ios, i, ierr, Nbins_tmp, iunit
+character(len=256) :: line
+iunit = 10
+ierr = 0
+
+! Open file
+open(unit=iunit, file='psr/ice_nucleating_particles.in', status='old', action='read', iostat=ios)
+if (ios /= 0) then
+  ierr = ios
+  print *, 'Error opening file: psr/ice_nucleating_particles.in'
+  return
+end if
+
+! Read number of bins
+read(iunit, *, iostat=ios) Nbins_tmp
+if (Nbins_tmp /= m) then
+  ierr = ios
+  print *, 'Nbins and m are not matching, check input files'
+  close(iunit)
+  return
+end if
+
+! Read data lines
+do i = 1, Nbins_tmp
+  read(iunit, *, iostat=ios) v0_bins(i), part_rho_bins(i), kappa_bins(i), ni(i)
+  if (ios /= 0) then
+    ierr = ios
+    print *, 'Error reading data line ', i
+    deallocate(v0_bins, part_rho_bins, kappa_bins, ni)
+    close(iunit)
+    return
+  end if
+end do
+
+!Interval length
+do i=1,m
+  dv(i) = v0_bins(i)-v0_bins(i-1)
+end do
+
+!Determine mid-points
+do i=1,m
+  v_m(i) = v(i-1)+0.5D0*dv(i)
+end do
+
+close(iunit)
+
+end subroutine pbe_file_init
+
+!**********************************************************************************************
 
 
 !**********************************************************************************************
