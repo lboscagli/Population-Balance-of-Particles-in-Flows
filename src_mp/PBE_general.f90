@@ -540,7 +540,16 @@ end do
 
 !Interval length
 do i=1,m
-  dv(i) = v0_bins(i)-v0_bins(i-1)
+  if (i.eq.1) then
+    dv(i) = v0_bins(i)-v(0)
+  else
+    dv(i) = v0_bins(i)-v0_bins(i-1)
+  endif
+end do
+
+!Re-scale number density based on bin size
+do i=1,m
+  ni(i) = ni(i) / dv(i)
 end do
 
 !Determine mid-points

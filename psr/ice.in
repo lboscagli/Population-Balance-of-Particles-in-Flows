@@ -11,4 +11,4 @@ ICE INPUT DATA
 600.0                              ! Jet initial temperature [K]
 0.005                               ! hygroscopicity (kappa) [-]
 .true.                               ! Supersaturation consumption - logical           
-.true.                                    ! Read distribution of INPs from input file - logical
+.false.                                    ! Read distribution of INPs from input file - logical

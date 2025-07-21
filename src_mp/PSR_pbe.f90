@@ -68,10 +68,7 @@ subroutine psr_pbe()
     allocate(kappa_bins(n_pbe_grid))
     allocate(part_rho_bins(n_pbe_grid))
     allocate(v0_bins(n_pbe_grid))
-    !ADD READING FUNCTION HERE
-    do i=1,m
-      ni(i) = ni(i) / dv(i)
-    end do
+    call pbe_file_init(ni)
   endif
 
 
@@ -199,6 +196,11 @@ subroutine psr_pbe()
   
   ! Deallocate arrays
   deallocate(ni)
+  if (inps_distribution_logical) then 
+    deallocate(kappa_bins)
+    deallocate(part_rho_bins)
+    deallocate(v0_bins)
+  endif
   call PBE_deallocate()
   
   !Close ice ouptut file
