@@ -39,9 +39,12 @@ double precision :: nrr               !< Number density in right-right cell
 double precision :: eps               !< Tolerance for upwind ratio
 double precision :: rl,rr             !< r+ at left and right surface
 
+double precision :: v0_act
+
 parameter(eps = 1.D1*epsilon(1.D0))
 
 !**********************************************************************************************
+
 
 !Only growth to the right present at nucleation interval
 
@@ -61,13 +64,25 @@ else if (growth_function>=4) then
   ! Ice growth model
   ! compute g_coeff1 and g_coeff2 from kinetic growth model
   
-
   if (growth_function==4) then
+    if (inps_distribution_logical) then 
+      if (nuclei_logical(index)) then
+        v0_act = v0_bins(index)  
+      else
+        if (v(index)>=v0) then
+          v0_act = v0
+        else
+          v0_act = v0_min 
+        endif
+      endif
+    else
+      v0_act = v0
+    endif
     call pbe_freezing_temperature(index, T_frz)
     !Depositional growth model activation (Karcher et al. 1996)
     if (((p_water .ge. p_sat_liq))) then ! .and. (current_temp > T_frz)) .or. ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz))) then !SAC criterion
       activation_logical = .true.
-      call pbe_depositional_growth_ice(index,ni,g_coeff1_l,g_coeff1_r,g_coeff2)   
+      call pbe_depositional_growth_ice(index,ni,v0_act,g_coeff1_l,g_coeff1_r,g_coeff2)   
       if (g_coeff1_l .ne. g_coeff1_l_prev) then
         g_coeff1_l = g_coeff1_l_prev
       endif
@@ -84,40 +99,94 @@ else if (growth_function>=4) then
     ! left growth rate
     g_terml = g_coeff1_l*(v(index-1)**g_coeff2)  
   elseif (growth_function==5) then
-    ! Compute freezing temperature neeeded to check if freezing-relaxation starts based on freezing temperature
-    ! Note that freezing temperature depends on liquid volume available for freezing (i.e., depends on (v(index)-v_0))
-    call pbe_freezing_temperature(index, T_frz)
-
-    !Droplet activation and growth based on Ponsonby et al. 2025
-    if (activation_logical) then 
-      if ((p_water .ge. p_sat_liq) .and. (current_temp > T_frz)) then
-        !write(*,*) 'Condensational growth'
-        call pbe_condensational_droplet_growth_Bier(index, ni, g_coeff1_l,g_coeff1_r,g_coeff2) 
-      elseif ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz)) then 
-        !write(*,*) 'Depositional growth'
-        call pbe_depositional_growth_ice_Bier(index, ni, g_coeff1_l,g_coeff1_r,g_coeff2) 
-        if (g_coeff1_l .ne. g_coeff1_l_prev) then
-          g_coeff1_l = g_coeff1_l_prev
+    !First check if there are multiple nuclei and adjust the 'activation' volume accordingly
+    if (inps_distribution_logical) then 
+      if (nuclei_logical(index)) then
+        v0_act = v0_bins(index)  
+        kappa = kappa_bins(index)
+      else
+        if (v(index)>=v0) then
+          v0_act = v0
+        else
+          v0_act = v0_min 
+          kappa = kappa_bins(index)
         endif
-      else
-        g_coeff1_l = 0.0
-        g_coeff1_r = 0.0
-        g_coeff2 = 0.0 
       endif
-      g_coeff1_l_prev = g_coeff1_r
-    else
-      call kohler_crit(current_temp, (3.0 / (4.0 * 3.141592653589793E+00) * v0)**(1.0/3.0), kappa, .false., r_vc, S_vc)
-      S_vc = S_vc + 1.0
+      ! Compute freezing temperature neeeded to check if freezing-relaxation starts based on freezing temperature
+      ! Note that freezing temperature depends on liquid volume available for freezing (i.e., depends on (v(index)-v_0))
+      call pbe_freezing_temperature(index, T_frz)
+
+      !Droplet activation and growth based on Ponsonby et al. 2025
+      if ((activation_logical) .and. (activation_logical_bins(index))) then 
+        if ((p_water .ge. p_sat_liq) .and. (current_temp > T_frz)) then
+          !write(*,*) 'Condensational growth'
+          call pbe_condensational_droplet_growth_Bier(index,ni,v0_act, g_coeff1_l,g_coeff1_r,g_coeff2) 
+        elseif ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz)) then 
+          !write(*,*) 'Depositional growth'
+          call pbe_depositional_growth_ice_Bier(index,ni,v0_act, g_coeff1_l,g_coeff1_r,g_coeff2) 
+          if (g_coeff1_l .ne. g_coeff1_l_prev) then
+            g_coeff1_l = g_coeff1_l_prev
+          endif
+        else
+          g_coeff1_l = 0.0
+          g_coeff1_r = 0.0
+          g_coeff2 = 0.0 
+        endif
+        g_coeff1_l_prev = g_coeff1_r
+      else
+        call kohler_crit(current_temp, (3.0 / (4.0 * 3.141592653589793E+00) * v0_act)**(1.0/3.0), kappa, .false., r_vc, S_vc)
+        S_vc = S_vc + 1.0
+        if ((Smw_time_series(step_update) .ge. S_vc)) then ! .and. (((3.0 / (4.0 * 3.141592653589793E+00) * v_m(index))**(1.0/3.0)) .ge. r_vc)) then
+          activation_logical = .true.
+          activation_logical_bins(index) = .true.
+          call pbe_condensational_droplet_growth_Bier(index,ni,v0_act, g_coeff1_l,g_coeff1_r,g_coeff2)
+        else
+          g_coeff1_l = 0.0
+          g_coeff1_r = 0.0
+          g_coeff2 = 0.0 
+        endif
+        g_coeff1_l_prev = g_coeff1_r
       
-      if ((Smw_time_series(step_update) .ge. S_vc)) then ! .and. (((3.0 / (4.0 * 3.141592653589793E+00) * v_m(index))**(1.0/3.0)) .ge. r_vc)) then
-        activation_logical = .true.
-        call pbe_condensational_droplet_growth_Bier(index, ni, g_coeff1_l,g_coeff1_r,g_coeff2)
-      else
-        g_coeff1_l = 0.0
-        g_coeff1_r = 0.0
-        g_coeff2 = 0.0 
       endif
-      g_coeff1_l_prev = g_coeff1_r
+      
+    else
+      v0_act = v0
+
+      ! Compute freezing temperature neeeded to check if freezing-relaxation starts based on freezing temperature
+      ! Note that freezing temperature depends on liquid volume available for freezing (i.e., depends on (v(index)-v_0))
+      call pbe_freezing_temperature(index, T_frz)
+
+      !Droplet activation and growth based on Ponsonby et al. 2025
+      if ((activation_logical)) then 
+        if ((p_water .ge. p_sat_liq) .and. (current_temp > T_frz)) then
+          !write(*,*) 'Condensational growth'
+          call pbe_condensational_droplet_growth_Bier(index,ni,v0_act, g_coeff1_l,g_coeff1_r,g_coeff2) 
+        elseif ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz)) then 
+          !write(*,*) 'Depositional growth'
+          call pbe_depositional_growth_ice_Bier(index,ni,v0_act, g_coeff1_l,g_coeff1_r,g_coeff2) 
+          if (g_coeff1_l .ne. g_coeff1_l_prev) then
+            g_coeff1_l = g_coeff1_l_prev
+          endif
+        else
+          g_coeff1_l = 0.0
+          g_coeff1_r = 0.0
+          g_coeff2 = 0.0 
+        endif
+        g_coeff1_l_prev = g_coeff1_r
+      else
+        call kohler_crit(current_temp, (3.0 / (4.0 * 3.141592653589793E+00) * v0_act)**(1.0/3.0), kappa, .false., r_vc, S_vc)
+        S_vc = S_vc + 1.0
+        if ((Smw_time_series(step_update) .ge. S_vc)) then ! .and. (((3.0 / (4.0 * 3.141592653589793E+00) * v_m(index))**(1.0/3.0)) .ge. r_vc)) then
+          activation_logical = .true.
+          call pbe_condensational_droplet_growth_Bier(index,ni,v0_act, g_coeff1_l,g_coeff1_r,g_coeff2)
+        else
+          g_coeff1_l = 0.0
+          g_coeff1_r = 0.0
+          g_coeff2 = 0.0 
+        endif
+        g_coeff1_l_prev = g_coeff1_r
+
+      endif    
     endif
 
     ! right growth rate

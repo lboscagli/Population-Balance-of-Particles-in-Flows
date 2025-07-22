@@ -33,11 +33,11 @@ def create_folder(name):
 ###############################################################################
 """ USER SETTINGs """
 
-path = './pbe/'
+path = '../pbe/'
 
 case_name = r''#'$\rho_p [kg/m^3]$'
 
-analysis_name = 'N04p5e13_Depositional_no_consumption'#'LES_XH2O_55bins_geometric_buthanol'
+analysis_name = 'TEST'#'15_dd20nm_k0p005'#'N04p5e10_K96'#'_no_consumption'#'LES_XH2O_55bins_geometric_buthanol'#'TEST'#
 
 
 ###############################################################################
@@ -68,6 +68,10 @@ Smw = data_T[:,7] # saturation ratio of the mixing line assuming no particles go
 tau_g = data_T[:,4] # growth timescale
 N_step_Save = len(time)//len(Sampled_iterations)
 Smw_consumed = data_T[:,8] # saturation ratio with consumption
+activation_binary = data_T[:,9]
+moment_0 = data_T[:,10]
+moment_1 = data_T[:,11]
+meansize = 2*((3/4/np.pi*(data_T[:,12]))**(1/3))
 
 ## Compute saturated (relative to liquid) water vapour partial pressure 
 p_water_sat_liq = np.exp(54.842763 - 6763.22 / Temperature - 4.21 * np.log(Temperature) + \
@@ -129,11 +133,23 @@ for t_filename in timestep_files:
 
 
 
-dic = {'timesteps':timestep_files,
-       'Mean_diameter':mean_d_m,
-       'Peak_diameter':peak_d_m,
-       'Sum_nv':Sum_nv,
-       'Mean_d_m_nvw':Mean_d_m}
+# dic = {'time':time[::N_step_Save],
+#        'timesteps':timestep_files,
+#        'Mean_diameter':mean_d_m,
+#        'Peak_diameter':peak_d_m,
+#        'Sum_nv':Sum_nv,
+#        'Mean_d_m_nvw':Mean_d_m}
+
+dic = {'time':time,
+       'Temperature':Temperature,
+       'activation_binary':activation_binary,
+       'P_v':P_v_consumed,
+       'P_sat_liq':p_water_sat_liq,
+       'P_sat_ice':p_water_sat_ice,
+       'Saturation':Smw_consumed,
+       'Mean_diameter':meansize,
+       'moment_0':moment_0,
+       'moment_1':moment_1}
 
 savemat(plot_dir+'/statistics.mat',dic)
 
@@ -181,7 +197,7 @@ fig,ax=plt.subplots()
 plt.plot(Temperature, p_water_sat_liq, 'k',ls='solid',label=r'$P_{v,sat}^{liq}$') 
 plt.plot(Temperature, p_water_sat_ice, 'r',ls='dashed',label=r'$P_{v,sat}^{ice}$')   
 plt.plot(Temperature[1:], P_v_consumed[1:], 'c',ls='-.',label=r'$\textnormal{mixing line}$')
-#plt.plot(Temperature[1:], P_v_consumed[1:], 'g--',ls='-.')#,label=r'$\textnormal{mixing line}$')  
+#plt.plot(Temperature[1:], P_v[1:], 'b--',ls='-.')#,label=r'$\textnormal{mixing line}$')  
 
 ax.tick_params(labelsize=18)
 ax.set_ylabel(r'$P_{v} [Pa]$',fontsize=18)
@@ -253,3 +269,34 @@ plt.xlim(min(time),max(time))
 plt.tight_layout()
 
 plt.savefig(plot_dir+'/Damkohler_number.png',dpi=600)
+
+
+Smw_activated = Smw_consumed[(activation_binary*Smw_consumed)>0][0]
+
+fig,ax=plt.subplots()
+ 
+ax1=ax.twinx()
+
+ax.semilogy(time,moment_0,'k',label=r'$0^{th}-moment$')#meansize*1E9,'k')
+ax1.plot(time,Smw_consumed,'r',label=r'$S_{mw}$')
+ax1.plot(time,Smw_activated*np.ones(len(time)),'r',ls='dotted',label=r'$S_{v,c}$')
+ax.set_xlabel(r'$t [s]$',fontsize=18)
+ax.set_ylabel(r'$0^{th}-moment$',fontsize=18)
+ax1.set_ylabel(r'$S_{mw}$',fontsize=18)
+ax.set_xlim(0,max(time))
+ax.set_ylim(min(moment_0),max(moment_0)+0.12*max(moment_0))
+ax1.plot(time,np.ones(len(time)),'r-.')
+ax1.set_ylim(0,1.5)
+ax.tick_params(labelsize=18)
+ax1.tick_params(labelsize=18)
+
+ax1.legend(loc='center right',fontsize=14)
+ax.legend(loc='lower right',fontsize=14)
+
+#Change color
+ax1.tick_params(axis='y', colors='r')
+ax1.yaxis.label.set_color('r')
+
+plt.tight_layout()
+
+plt.savefig(plot_dir+'/Supersaturation_and_number_density.png',dpi=600)

@@ -12,7 +12,7 @@ subroutine psr_pbe()
   use pbe_mod, only: growth_function, jet_cl_model, amb_temp, amb_rho, current_temp, current_rho, p_water, tau_g, current_XH2O, dv, m
   use pbe_mod, only: Loss_Sw, Production_Sw, Smw, p_sat_liq, p_sat_ice, amb_p, G_mixing_line, Smw_time_series, step_update, activation_logical, consumption_logical
   use pbe_mod, only: plume_cooling_rate, T_time_series
-  use pbe_mod, only: kappa_bins, part_rho_bins, v0_bins, inps_distribution_logical
+  use pbe_mod, only: kappa_bins, part_rho_bins, v0_bins, ni_new, inps_distribution_logical, v, nuclei_logical, activation_logical_bins
   use ice_microphys_mod
   
   implicit none
@@ -40,6 +40,7 @@ subroutine psr_pbe()
   !Initialize inps_distribution_logical to false if then inps_distribution_logical is set to .true. in ice.in, then pbe_grid and pbe_init will be overwritten 
   inps_distribution_logical = .false.
 
+
   ! Read PSR input data
   open(30,file='psr/psr.in')
   do i=1,2
@@ -64,11 +65,23 @@ subroutine psr_pbe()
   endif
 
   if (inps_distribution_logical) then 
-    write(*,*) 'Re-initialize PBE grid and operating conditions based on user input file named ice_nucleating_particles.in'
-    allocate(kappa_bins(n_pbe_grid))
-    allocate(part_rho_bins(n_pbe_grid))
-    allocate(v0_bins(n_pbe_grid))
-    call pbe_file_init(ni)
+    write(*,*) 'Re-initialize PBE grid and operating conditions based on user input file named ice_nucleating_particles.in'    
+    call pbe_file_init(ni_new)
+    allocate(activation_logical_bins(n_pbe_grid))
+    do i=1,m
+      ni(i) = ni_new(i) / dv(i)
+      v(i) = v0_bins(i)
+      if (nuclei_logical(i)) then
+        activation_logical_bins(i) = .false.
+      else
+        activation_logical_bins(i) = .true.
+      endif
+    end do
+  else
+    allocate(nuclei_logical(n_pbe_grid))
+    do i=1,m
+      nuclei_logical(i) = .false. 
+    end do
   endif
 
 
@@ -196,6 +209,7 @@ subroutine psr_pbe()
   
   ! Deallocate arrays
   deallocate(ni)
+  deallocate(nuclei_logical)
   if (inps_distribution_logical) then 
     deallocate(kappa_bins)
     deallocate(part_rho_bins)

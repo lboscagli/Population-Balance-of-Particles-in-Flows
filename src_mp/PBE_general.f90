@@ -64,7 +64,9 @@ logical :: consumption_logical !Flag for user activation of consumption of super
 
 !Variable for ice_nucleating_particles.in file
 logical :: inps_distribution_logical !Flag to determine whether or not the initial distribution should be read from the input file
-double precision, allocatable :: kappa_bins(:), part_rho_bins(:), v0_bins(:) !hygroscopicity, mass density and nuclei volume size 
+double precision, allocatable, dimension(:) :: kappa_bins, part_rho_bins, v0_bins, ni_new !hygroscopicity, mass density nuclei volume size and number density 
+logical, allocatable, dimension(:) :: nuclei_logical, activation_logical_bins !array with logical variable to define if the bin is a nuclei or not
+double precision :: v0_min
 
 integer m,grid_type
 integer i_gm,solver_pbe
@@ -488,7 +490,7 @@ end subroutine pbe_init
 
 !**********************************************************************************************
 
-subroutine pbe_file_init(ni)
+subroutine pbe_file_init()
 
 !**********************************************************************************************
 !
@@ -498,12 +500,12 @@ subroutine pbe_file_init(ni)
 !
 !**********************************************************************************************
 
-use pbe_mod
+use pbe_mod 
 
 implicit none
 
-double precision, allocatable, intent(inout) :: ni(:)
 ! Locals
+double precision :: part_den_l_mean, v0_mean, inps_type_no
 integer :: ios, i, ierr, Nbins_tmp, iunit
 character(len=256) :: line
 iunit = 10
@@ -526,17 +528,57 @@ if (Nbins_tmp /= m) then
   return
 end if
 
+
+allocate(v0_bins(Nbins_tmp), stat=ios)
+if (ios /= 0) then
+  ierr = ios
+  print *, 'ERROR: Allocation failed for v array'
+  close(iunit)
+  return
+end if
+
+allocate(part_rho_bins(Nbins_tmp), kappa_bins(Nbins_tmp), ni_new(Nbins_tmp), nuclei_logical(Nbins_tmp), stat=ios)
+if (ios /= 0) then
+  ierr = ios
+  print *, 'ERROR: Allocation failed for one or more arrays'
+  deallocate(v)
+  close(iunit)
+  return
+end if
+
 ! Read data lines
 do i = 1, Nbins_tmp
-  read(iunit, *, iostat=ios) v0_bins(i), part_rho_bins(i), kappa_bins(i), ni(i)
+  read(iunit, *, iostat=ios) v0_bins(i), part_rho_bins(i), kappa_bins(i), ni_new(i), nuclei_logical(i)
   if (ios /= 0) then
     ierr = ios
     print *, 'Error reading data line ', i
-    deallocate(v0_bins, part_rho_bins, kappa_bins, ni)
+    deallocate(v0_bins, part_rho_bins, kappa_bins, ni_new)
     close(iunit)
     return
   end if
 end do
+
+! Define a mean (arithmetic) nuclei radius (volume) and density 
+!!! NOTE: this is an assumption that is needed to keep using one PBE only even in the presence of multiple ice-nucleating particles
+!!! these arithmetic mean values will only be used to compute the volumetric growth rates, while for the activation the 'true' nuclei
+!!! (dry) radius specified by the user in the input file (ice_nucleating_particles.in) will be used 
+v0_mean = 0.
+v0_min = 1e35
+part_den_l_mean = 0.
+inps_type_no = 0.
+do i = 1, Nbins_tmp
+  if (nuclei_logical(i)) then
+    v0_mean = v0_mean + v0_bins(i)
+    v0_min = min(v0_min,v0_bins(i))
+    part_den_l_mean = part_den_l_mean + part_rho_bins(i)
+    inps_type_no = inps_type_no + 1.0
+  endif  
+end do  
+v0 = v0_mean/inps_type_no
+part_den_l = part_den_l_mean/inps_type_no
+
+write(*,*) 'Mean v0: ',v0
+write(*,*) 'Mean part_den_l: ',part_den_l
 
 !Interval length
 do i=1,m
@@ -545,11 +587,6 @@ do i=1,m
   else
     dv(i) = v0_bins(i)-v0_bins(i-1)
   endif
-end do
-
-!Re-scale number density based on bin size
-do i=1,m
-  ni(i) = ni(i) / dv(i)
 end do
 
 !Determine mid-points
