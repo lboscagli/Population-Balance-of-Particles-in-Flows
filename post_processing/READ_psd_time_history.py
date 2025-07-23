@@ -271,7 +271,10 @@ plt.tight_layout()
 plt.savefig(plot_dir+'/Damkohler_number.png',dpi=600)
 
 
-Smw_activated = Smw_consumed[(activation_binary*Smw_consumed)>0][0]
+if max(activation_binary)>1.0:
+    Smw_activated = [val for i, val in enumerate(activation_binary) if val != 0]
+else:    
+    Smw_activated = Smw_consumed[(activation_binary*Smw_consumed)>0][0]
 
 fig,ax=plt.subplots()
  
@@ -279,7 +282,13 @@ ax1=ax.twinx()
 
 ax.semilogy(time,moment_0,'k',label=r'$0^{th}-moment$')#meansize*1E9,'k')
 ax1.plot(time,Smw_consumed,'r',label=r'$S_{mw}$')
-ax1.plot(time,Smw_activated*np.ones(len(time)),'r',ls='dotted',label=r'$S_{v,c}$')
+
+if max(activation_binary)>1.0:
+    ax1.plot(time,max(Smw_activated)*np.ones(len(time)),'r',ls='dotted',label=r'$S_{v,c}-vPM$')
+    ax1.plot(time,min(Smw_activated)*np.ones(len(time)),'r',ls='dotted',label=r'$S_{v,c}-nvPM$')
+else:
+    ax1.plot(time,Smw_activated*np.ones(len(time)),'r',ls='dotted',label=r'$S_{v,c}$')
+
 ax.set_xlabel(r'$t [s]$',fontsize=18)
 ax.set_ylabel(r'$0^{th}-moment$',fontsize=18)
 ax1.set_ylabel(r'$S_{mw}$',fontsize=18)
@@ -290,8 +299,8 @@ ax1.set_ylim(0,1.5)
 ax.tick_params(labelsize=18)
 ax1.tick_params(labelsize=18)
 
-ax1.legend(loc='center right',fontsize=14)
-ax.legend(loc='lower right',fontsize=14)
+ax1.legend(loc='lower right',fontsize=12)
+ax.legend(loc='center right',fontsize=12)
 
 #Change color
 ax1.tick_params(axis='y', colors='r')

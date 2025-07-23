@@ -72,6 +72,7 @@ subroutine psr_pbe()
     do i=1,m
       ni(i) = ni_new(i) / dv(i)
       v(i) = v0_bins(i)
+      S_vc_bins(i) = 0.
       if (nuclei_logical(i)) then
         activation_logical_bins(i) = .false.
       else
@@ -149,11 +150,15 @@ subroutine psr_pbe()
 
 
       !Write to output file
-      if (activation_logical) then
-        write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),1.0,moment(0),moment(1),meansize
+      if (inps_distribution_logical) then 
+        write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),maxval(S_vc_bins),moment(0),moment(1),meansize
       else
-        write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),0.0,moment(0),moment(1),meansize
-      endif
+        if (activation_logical) then
+          write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),1.0,moment(0),moment(1),meansize
+        else
+          write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),0.0,moment(0),moment(1),meansize
+        endif
+      endif  
     endif
   
     ! The following should be done if the kernel should be updated at each time step due to e.g. 
