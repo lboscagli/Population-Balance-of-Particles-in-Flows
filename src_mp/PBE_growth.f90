@@ -104,6 +104,7 @@ else if (growth_function>=4) then
       if (nuclei_logical(index)) then
         v0_act = v0_bins(index)  
         kappa = kappa_bins(index)
+        S_vc = S_vc_bins(index)
       else
         if (v(index)>=v0) then
           v0_act = v0
@@ -142,11 +143,10 @@ else if (growth_function>=4) then
         if ((Smw_time_series(step_update) .ge. S_vc) .and. (ni(index)>0)) then ! .and. (((3.0 / (4.0 * 3.141592653589793E+00) * v_m(index))**(1.0/3.0)) .ge. r_vc)) then
           activation_logical = .true.
           activation_logical_bins(index) = .true.
-          write(*,*) 'S_vc',S_vc
+          S_vc_bins(index) = S_vc
+          write(*,*) 'S_vc [-]',S_vc
+          write(*,*) 'r_vc [nm]',r_vc*1E9
           call pbe_condensational_droplet_growth_Bier(index,ni,v0_act, g_coeff1_l,g_coeff1_r,g_coeff2)
-          if (g_coeff1_l .ne. g_coeff1_l_prev) then
-            g_coeff1_l = g_coeff1_l_prev
-          endif
         else
           g_coeff1_l = 0.0
           g_coeff1_r = 0.0

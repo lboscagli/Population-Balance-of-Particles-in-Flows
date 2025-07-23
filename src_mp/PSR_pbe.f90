@@ -12,7 +12,7 @@ subroutine psr_pbe()
   use pbe_mod, only: growth_function, jet_cl_model, amb_temp, amb_rho, current_temp, current_rho, p_water, tau_g, current_XH2O, dv, m
   use pbe_mod, only: Loss_Sw, Production_Sw, Smw, p_sat_liq, p_sat_ice, amb_p, G_mixing_line, Smw_time_series, step_update, activation_logical, consumption_logical
   use pbe_mod, only: plume_cooling_rate, T_time_series
-  use pbe_mod, only: kappa_bins, part_rho_bins, v0_bins, ni_new, inps_distribution_logical, v, nuclei_logical, activation_logical_bins
+  use pbe_mod, only: kappa_bins, part_rho_bins, v0_bins, ni_new, inps_distribution_logical, v, nuclei_logical, activation_logical_bins, S_vc_bins
   use ice_microphys_mod
   
   implicit none
@@ -68,6 +68,7 @@ subroutine psr_pbe()
     write(*,*) 'Re-initialize PBE grid and operating conditions based on user input file named ice_nucleating_particles.in'    
     call pbe_file_init(ni_new)
     allocate(activation_logical_bins(n_pbe_grid))
+    allocate(S_vc_bins(n_pbe_grid))
     do i=1,m
       ni(i) = ni_new(i) / dv(i)
       v(i) = v0_bins(i)

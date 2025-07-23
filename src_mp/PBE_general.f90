@@ -67,6 +67,7 @@ logical :: inps_distribution_logical !Flag to determine whether or not the initi
 double precision, allocatable, dimension(:) :: kappa_bins, part_rho_bins, v0_bins, ni_new !hygroscopicity, mass density nuclei volume size and number density 
 logical, allocatable, dimension(:) :: nuclei_logical, activation_logical_bins !array with logical variable to define if the bin is a nuclei or not
 double precision :: v0_min
+real(kind=8), allocatable, dimension(:) :: S_vc_bins
 
 integer m,grid_type
 integer i_gm,solver_pbe
