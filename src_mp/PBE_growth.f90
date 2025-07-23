@@ -121,6 +121,9 @@ else if (growth_function>=4) then
         if ((p_water .ge. p_sat_liq) .and. (current_temp > T_frz)) then
           !write(*,*) 'Condensational growth'
           call pbe_condensational_droplet_growth_Bier(index,ni,v0_act, g_coeff1_l,g_coeff1_r,g_coeff2) 
+          if (g_coeff1_l .ne. g_coeff1_l_prev) then
+            g_coeff1_l = g_coeff1_l_prev
+          endif
         elseif ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz)) then 
           !write(*,*) 'Depositional growth'
           call pbe_depositional_growth_ice_Bier(index,ni,v0_act, g_coeff1_l,g_coeff1_r,g_coeff2) 
@@ -136,10 +139,14 @@ else if (growth_function>=4) then
       else
         call kohler_crit(current_temp, (3.0 / (4.0 * 3.141592653589793E+00) * v0_act)**(1.0/3.0), kappa, .false., r_vc, S_vc)
         S_vc = S_vc + 1.0
-        if ((Smw_time_series(step_update) .ge. S_vc)) then ! .and. (((3.0 / (4.0 * 3.141592653589793E+00) * v_m(index))**(1.0/3.0)) .ge. r_vc)) then
+        if ((Smw_time_series(step_update) .ge. S_vc) .and. (ni(index)>0)) then ! .and. (((3.0 / (4.0 * 3.141592653589793E+00) * v_m(index))**(1.0/3.0)) .ge. r_vc)) then
           activation_logical = .true.
           activation_logical_bins(index) = .true.
+          write(*,*) 'S_vc',S_vc
           call pbe_condensational_droplet_growth_Bier(index,ni,v0_act, g_coeff1_l,g_coeff1_r,g_coeff2)
+          if (g_coeff1_l .ne. g_coeff1_l_prev) then
+            g_coeff1_l = g_coeff1_l_prev
+          endif
         else
           g_coeff1_l = 0.0
           g_coeff1_r = 0.0
@@ -161,6 +168,9 @@ else if (growth_function>=4) then
         if ((p_water .ge. p_sat_liq) .and. (current_temp > T_frz)) then
           !write(*,*) 'Condensational growth'
           call pbe_condensational_droplet_growth_Bier(index,ni,v0_act, g_coeff1_l,g_coeff1_r,g_coeff2) 
+          if (g_coeff1_l .ne. g_coeff1_l_prev) then
+            g_coeff1_l = g_coeff1_l_prev
+          endif  
         elseif ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz)) then 
           !write(*,*) 'Depositional growth'
           call pbe_depositional_growth_ice_Bier(index,ni,v0_act, g_coeff1_l,g_coeff1_r,g_coeff2) 
@@ -185,9 +195,9 @@ else if (growth_function>=4) then
           g_coeff2 = 0.0 
         endif
         g_coeff1_l_prev = g_coeff1_r
-
       endif    
     endif
+    !g_coeff1_l_prev = g_coeff1_r
 
     ! right growth rate
     g_termr = g_coeff1_r*(v(index)**g_coeff2)
