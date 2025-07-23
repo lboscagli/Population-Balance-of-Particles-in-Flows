@@ -280,11 +280,11 @@ fig,ax=plt.subplots()
  
 ax1=ax.twinx()
 
-ax.semilogy(time,moment_0,'k',label=r'$0^{th}-moment$')#meansize*1E9,'k')
-ax1.plot(time,Smw_consumed,'r',label=r'$S_{mw}$')
+ax.semilogy(time,moment_0,'k')#,label=r'$0^{th}-moment$')#meansize*1E9,'k')
+ax1.plot(time,Smw_consumed,'r')#,label=r'$S_{mw}$')
 
 if max(activation_binary)>1.0:
-    ax1.plot(time,max(Smw_activated)*np.ones(len(time)),'r',ls='dotted',label=r'$S_{v,c}-vPM$')
+    ax1.plot(time,max(Smw_activated)*np.ones(len(time)),'r',ls='dashed',label=r'$S_{v,c}-vPM$')
     ax1.plot(time,min(Smw_activated)*np.ones(len(time)),'r',ls='dotted',label=r'$S_{v,c}-nvPM$')
 else:
     ax1.plot(time,Smw_activated*np.ones(len(time)),'r',ls='dotted',label=r'$S_{v,c}$')
@@ -294,13 +294,13 @@ ax.set_ylabel(r'$0^{th}-moment$',fontsize=18)
 ax1.set_ylabel(r'$S_{mw}$',fontsize=18)
 ax.set_xlim(0,max(time))
 ax.set_ylim(min(moment_0)-0.12*min(moment_0),max(moment_0)+0.12*max(moment_0))
-ax1.plot(time,np.ones(len(time)),'r-.')
+ax1.plot(time,np.ones(len(time)),'r-.',label=r'$S_{v,liq}$')
 ax1.set_ylim(0,1.5)
 ax.tick_params(labelsize=18)
 ax1.tick_params(labelsize=18)
 
 ax1.legend(loc='lower right',fontsize=12)
-ax.legend(loc='center right',fontsize=12)
+#ax.legend(loc='center right',fontsize=12)
 
 #Change color
 ax1.tick_params(axis='y', colors='r')
