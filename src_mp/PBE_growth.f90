@@ -110,7 +110,7 @@ else if (growth_function>=4) then
           v0_act = v0
         else
           v0_act = v0_min 
-          kappa = kappa_bins(index)
+          !kappa = kappa_bins(index)
         endif
       endif
       ! Compute freezing temperature neeeded to check if freezing-relaxation starts based on freezing temperature

@@ -91,11 +91,11 @@ import matplotlib.pyplot as plt
 # === USER INPUTS ===
 Nbins = 55
 N1 = 6  # number of bins from v01 to v02 (inclusive)
-r01 = 5e-9
+r01 = 4e-9
 r02 = 20e-9
-n01, n02 = 4e12, 4.5e9
+n01, n02 = 0e12, 4.5e9
 rho1, rho2 = 1500, 1500
-kappa1, kappa2 = 0.005, 0.005
+kappa1, kappa2 = 0.35, 0.005
 output_filename = "../psr/ice_nucleating_particles.in"
 
 # === Derived values ===
