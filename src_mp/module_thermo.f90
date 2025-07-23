@@ -6,6 +6,7 @@ module constants
   real(kind=8), parameter :: Cp = 1004.0_8  !! specific heat of dry air at const. pressure [J/kg/K]
   real(kind=8), parameter :: Lw = 2.25e6_8   !! latent heat of vaporization [J/kg]
   real(kind=8), parameter :: rho_w = 1000.0_8 !! density of water [kg/m^3]
+  real(kind=8), parameter :: rho_ice = 917.0_8 !! density of water [kg/m^3]
   real(kind=8), parameter :: Rgas = 8.314_8    !! universal gas constant [J/mol/K]
   real(kind=8), parameter :: Mw = 18.016_8/1.0e3_8 !! molar weight of water [kg/mol]
   real(kind=8), parameter :: Ma = 28.96_8/1.0e3_8 !! molar weight of dry air [kg/mol]
@@ -79,8 +80,8 @@ module thermo
   use constants
   use optimizer
   implicit none
-  public :: dv_cont, dv_corr, rho_air, es, ka_cont, ka_corr, sigma_w
-  public :: Seq, Seq_approx, kohler_crit, critical_curve, r_eff
+  public :: dv_cont, dv_corr, rho_air, es, ka_cont, ka_corr, sigma_w, sigma_ice
+  public :: Seq, Seq_water, Seq_ice, Seq_approx, kohler_crit, critical_curve, r_eff
   public :: kair_conductivity, latent_heat_cond_evap, latent_heat_dep_sub, mean_thermal_speed
 
   ! Temporary variables for minimization:
@@ -195,6 +196,14 @@ contains
     sigma = 0.0761_8-1.55e-4_8*(T-273.15_8)
   end function sigma_w
 
+  function sigma_ice(T) result(sigma)
+    !! Compute surface tension of water at temperature T [K].
+    !! Returns sigma [J/m^2].
+    real(kind=8), intent(in) :: T
+    real(kind=8) :: sigma
+    sigma = 0.109_8-1.55e-4_8*(T-273.15_8)
+  end function sigma_ice  
+
   function Seq(r, r_dry, T, kappa) result(S_eq)
     !! Compute equilibrium supersaturation over a particle per κ-Köhler theory.
     !! r,r_dry [m]; T [K]; kappa [-].
@@ -205,6 +214,26 @@ contains
     B = (r**3-r_dry**3)/(r**3-(r_dry**3)*(1.0_8-kappa))
     S_eq = exp(A)*B - 1.0_8
   end function Seq
+
+  function Seq_water(r, T) result(S_eq)
+    !! Compute equilibrium supersaturation over a pure water drolet per κ-Köhler theory.
+    !! r,r_dry [m]; T [K]; kappa [-].
+    !! Returns S_eq [-].
+    real(kind=8), intent(in) :: r, T
+    real(kind=8) :: S_eq, A
+    A = (2.0_8*Mw*sigma_w(T))/(8.314_8*T*rho_w*r)
+    S_eq = exp(A) - 1.0_8
+  end function Seq_water
+
+  function Seq_ice(r, T) result(S_eq)
+    !! Compute equilibrium supersaturation over a pure water drolet per κ-Köhler theory.
+    !! r,r_dry [m]; T [K]; kappa [-].
+    !! Returns S_eq [-].
+    real(kind=8), intent(in) :: r, T
+    real(kind=8) :: S_eq, A
+    A = (2.0_8*Mw*sigma_ice(T))/(8.314_8*T*rho_ice*r)
+    S_eq = exp(A) - 1.0_8
+  end function Seq_ice
 
   function Seq_approx(r, r_dry, T, kappa) result(S_eq_approx)
     !! Compute approximate equilibrium supersaturation using Taylor-expansion.

@@ -167,7 +167,8 @@ contains
       S_v = S_vc
     else  
       S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
-      S_v = S_v + 1.0   
+      !S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
+      S_v = S_v + 1.0     
     endif
 
     ! Saturation presure over liquid
@@ -218,6 +219,7 @@ contains
       S_v = S_vc
     else  
       S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+      !S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
       S_v = S_v + 1.0   
     endif
 
@@ -310,6 +312,7 @@ contains
       !write(*,*) 'S_v',S_vc
     else  
       S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+      !S_v = Seq_ice(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
       S_v = S_v + 1.0   
     endif
 
@@ -357,6 +360,7 @@ contains
       S_v = S_vc
     else  
       S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+      !S_v = Seq_ice(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
       S_v = S_v + 1.0   
     endif
 

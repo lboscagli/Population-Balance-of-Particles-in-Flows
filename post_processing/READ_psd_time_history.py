@@ -109,10 +109,12 @@ peak_d_m = []
 number_density = []
 Sum_nv = []
 Mean_d_m = []
+particle_type = []
 for t_filename in timestep_files:
     v_m_i = []
     d_m_i = []
     dv_i = []
+    particle_type_i = []
     number_density_i = []
     with open(path+t_filename) as f:
         for line in f.readlines():
@@ -120,6 +122,7 @@ for t_filename in timestep_files:
             d_m_i.append(float(line.split()[1]))
             number_density_i.append(float(line.split()[2]))
             dv_i.append(float(line.split()[6]))
+            particle_type_i.append(float(line.split()[7]))
         
     v_m.append(np.array(v_m_i))
     d_m.append(np.array(d_m_i))
@@ -130,7 +133,7 @@ for t_filename in timestep_files:
     peak_d_m.append(d_m_i[idx_peak])
     Sum_nv.append(np.sum(np.array(number_density_i)*np.array(dv_i)))
     Mean_d_m.append(np.sum(np.array(d_m_i)*np.array(number_density_i)*np.array(dv_i))/np.sum(np.array(number_density_i)*np.array(dv_i)))
-
+    particle_type.append(np.array(particle_type_i))
 
 
 # dic = {'time':time[::N_step_Save],

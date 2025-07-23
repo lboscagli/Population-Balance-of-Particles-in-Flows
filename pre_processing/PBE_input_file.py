@@ -95,7 +95,7 @@ r01 = 4e-9
 r02 = 20e-9
 n01, n02 = 4.5e12, 4.5e9
 rho1, rho2 = 1500, 1500
-kappa1, kappa2 = 0.05, 0.005
+kappa1, kappa2 = 0.1, 0.005
 output_filename = "../psr/ice_nucleating_particles.in"
 
 # === Derived values ===

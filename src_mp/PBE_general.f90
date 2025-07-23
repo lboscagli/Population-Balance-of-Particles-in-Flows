@@ -64,7 +64,7 @@ logical :: consumption_logical !Flag for user activation of consumption of super
 
 !Variable for ice_nucleating_particles.in file
 logical :: inps_distribution_logical !Flag to determine whether or not the initial distribution should be read from the input file
-double precision, allocatable, dimension(:) :: kappa_bins, part_rho_bins, v0_bins, ni_new !hygroscopicity, mass density nuclei volume size and number density 
+double precision, allocatable, dimension(:) :: kappa_bins, part_rho_bins, v0_bins, ni_new, ni_type !hygroscopicity, mass density nuclei volume size and number density 
 logical, allocatable, dimension(:) :: nuclei_logical, activation_logical_bins !array with logical variable to define if the bin is a nuclei or not
 double precision :: v0_min
 real(kind=8), allocatable, dimension(:) :: S_vc_bins
@@ -944,7 +944,7 @@ else
 endif
 do i=1,m
   write(99,1001) v_m(i),(6.D0/3.14159*v_m(i))**(1.D0/3.D0),nitemp(i), &
-  & nitemp(i)*dv(i)/moment(0),v_m(i)*nitemp(i),v_m(i)*nitemp(i)*dv(i)/moment(1),dv(i)
+  & nitemp(i)*dv(i)/moment(0),v_m(i)*nitemp(i),v_m(i)*nitemp(i)*dv(i)/moment(1),dv(i),ni_type(i)
 end do
 close(99)
 if (i_writesp==1) then
@@ -956,7 +956,7 @@ if (i_writesp==1) then
   end do
 end if
 
-1001 format(7E20.10)
+1001 format(8E20.10)
 1002 format(2E20.10)
 
 end subroutine pbe_output
