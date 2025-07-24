@@ -39,7 +39,8 @@ case_name = r''#'$\rho_p [kg/m^3]$'
 
 analysis_name = 'EXAMPLE'#'15_dd20nm_k0p005'#'N04p5e10_K96'#'_no_consumption'#'LES_XH2O_55bins_geometric_buthanol'#'TEST'#
 
-NUMBER_DENSITY_HISTORY_PLOT = True
+NUMBER_DENSITY_BAR_PLOT = True
+NUMBER_DENSITY_SCATTER_PLOT = False
 
 ###############################################################################
 
@@ -315,43 +316,9 @@ plt.tight_layout()
 plt.savefig(plot_dir+'/Supersaturation_and_number_density.png',dpi=600)
 
 
-if NUMBER_DENSITY_HISTORY_PLOT:
-    plot_hist_dir = create_folder(plot_dir+'/n_history')
-    # import matplotlib.colors as colors
-    
-    # for i, case in enumerate(Sampled_iterations):
-    #     fig, ax = plt.subplots()
-        
-    #     x_vals = d_m[i] * 1e9  # Convert to nm
-    #     y_vals = number_density[i]
-    #     z_vals = particle_type[i]  # Replace this with your actual 3rd variable array
-    
-    #     # Normalize third variable for colormap
-    #     norm = colors.Normalize(vmin=0, vmax=2)
-    #     cmap = cm.Blues  # You can change to any colormap you like
-    
-    #     # Plot with color mapping
-    #     sc = ax.scatter(x_vals, y_vals, c=z_vals, cmap=cmap, norm=norm, s=100, edgecolors='k')
-    
-    #     ax.set_yscale('log')  # Equivalent to semilogy
-    
-    #     ax.tick_params(labelsize=18)
-    #     ax.set_xlabel(r'$d_m [nm]$', fontsize=18)
-    #     ax.set_ylabel(r'$n_v [\#/m^3]$', fontsize=18)
-    
-    #     ax.set_xlim(-10,
-    #                 max([max(d_m_i) for d_m_i in d_m]) * 1e9)
-    #     ax.set_ylim(1, max([max(nv) for nv in number_density]))
-    
-    #     plt.title('Particle number density\n per cell unit volume', fontsize=14)
-    
-    #     # Add colorbar for the third variable
-    #     cbar = plt.colorbar(sc, ax=ax)
-    #     cbar.set_label('Your third variable label', fontsize=14)
-    
-    #     plt.tight_layout()
-    #     plt.savefig(f"{plot_hist_dir}/number_density_it-{case}.png", dpi=600)
-    #     plt.close()
+if NUMBER_DENSITY_SCATTER_PLOT:
+    plot_hist_dir = create_folder(plot_dir+'/Scatter_plots')
+ 
     import matplotlib.cm as cm
     import matplotlib.colors as mcolors
     
@@ -364,6 +331,37 @@ if NUMBER_DENSITY_HISTORY_PLOT:
     norm = mcolors.BoundaryNorm(boundaries=[-0.5, 0.5, 1.5, 2.5], ncolors=3)
     
     for i, case in enumerate(Sampled_iterations):
+        # fig, ax = plt.subplots()
+        
+        # x_vals = d_m[i] * 1e9  # Convert to nm
+        # y_vals = number_density[i]
+        # z_vals = particle_type[i]  # Should contain only 0, 1, 2
+        
+        # # Scatter plot with discrete colors
+        # sc = ax.scatter(x_vals, y_vals, c=z_vals, cmap=cmap, norm=norm,
+        #                 s=100, edgecolors='k')
+        
+        # ax.set_yscale('log')  # Log scale for y-axis
+        # ax.set_xscale('log')
+        
+        # ax.tick_params(labelsize=18)
+        # ax.set_xlabel(r'$d_m\ [nm]$', fontsize=18)
+        # ax.set_ylabel(r'$n_v\ [\#/m^3]$', fontsize=18)
+        
+        # ax.set_xlim(1, 1E4)#max([max(d_m_i) for d_m_i in d_m]) * 1e9)
+        # ax.set_ylim(1, max([max(nv) for nv in number_density])+10*max([max(nv) for nv in number_density]))
+        
+        # plt.title(r'$T_{jet} \textnormal{[K]}=$'+str("${:.1f}$".format(Temperature[int(case)-1]))+'\n'+r'$t \textnormal{[s]}=$'+str("${:.4f}$".format(time[int(case)-1])), fontsize=14)
+        
+        # # Colorbar with custom category labels
+        # cbar = plt.colorbar(sc, ax=ax, ticks=category_levels)
+        # cbar.ax.set_yticklabels(category_labels)
+        # cbar.set_label(r'$\textnormal{Particle type}$', fontsize=18)
+        
+        # plt.tight_layout()
+        # plt.savefig(plot_hist_dir+'/number_density_it-'+str(int(case))+'.png', dpi=600)
+        # plt.close()
+        
         fig, ax = plt.subplots()
         
         x_vals = d_m[i] * 1e9  # Convert to nm
@@ -393,4 +391,63 @@ if NUMBER_DENSITY_HISTORY_PLOT:
         
         plt.tight_layout()
         plt.savefig(plot_hist_dir+'/number_density_it-'+str(int(case))+'.png', dpi=600)
+        plt.close()        
+
+if NUMBER_DENSITY_BAR_PLOT:
+    plot_hist_dir = create_folder(plot_dir+'/Bar_plots')
+
+    import matplotlib.cm as cm
+    import matplotlib.colors as mcolors
+
+    # Define your custom labels (adjust as needed)
+    category_labels = [r'$\textnormal{Aerosol}$',
+                       r'$\textnormal{Water}$',
+                       r'$\textnormal{Ice}$']
+    category_levels = [0, 1, 2]  # Must match values in particle_type[i]
+
+    # Use discrete colormap with 3 colors
+    category_colors = cm.get_cmap('Blues', 3)([0, 1, 2])  # Get 3 distinct shades
+
+    for i, case in enumerate(Sampled_iterations):
+        fig, ax = plt.subplots()
+
+        x_vals = d_m[i] * 1e9  # Convert to nm
+        y_vals = number_density[i]
+        z_vals = particle_type[i]  # 0, 1, or 2
+
+        # Sort by x for neater plotting (optional)
+        sorted_indices = np.argsort(x_vals)
+        x_vals = x_vals[sorted_indices]
+        y_vals = y_vals[sorted_indices]
+        z_vals = z_vals[sorted_indices]
+
+        # Map each bar's color from particle type
+        bar_colors = [category_colors[int(t)] for t in z_vals]
+
+        # Plot bars instead of scatter
+        ax.bar(x_vals, y_vals, width=10, color=bar_colors, edgecolor='k', align='center')
+
+        ax.set_yscale('log')
+        ax.set_xscale('log')
+
+        ax.tick_params(labelsize=18)
+        ax.set_xlabel(r'$d_m\ [nm]$', fontsize=18)
+        ax.set_ylabel(r'$n_v\ [\#/m^3]$', fontsize=18)
+
+        ax.set_xlim(1, 1E4)
+        ax.set_ylim(1, max([max(nv) for nv in number_density]) + 10 * max([max(nv) for nv in number_density]))
+
+        plt.title(
+            r'$T_{jet} \textnormal{[K]}=$' + str("${:.1f}$".format(Temperature[int(case) - 1])) + '\n' +
+            r'$t \textnormal{[s]}=$' + str("${:.4f}$".format(time[int(case) - 1])),
+            fontsize=14
+        )
+
+        # Custom legend instead of colorbar
+        handles = [plt.Rectangle((0, 0), 1, 1, color=category_colors[j], label=category_labels[j])
+                   for j in range(3)]
+        ax.legend(handles=handles, title=r'$\textnormal{Particle type}$', fontsize=14, title_fontsize=14)
+
+        plt.tight_layout()
+        plt.savefig(plot_hist_dir + '/number_density_it-' + str(int(case)) + '.png', dpi=600)
         plt.close()
