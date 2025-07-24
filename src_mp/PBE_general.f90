@@ -581,19 +581,35 @@ part_den_l = part_den_l_mean/inps_type_no
 write(*,*) 'Mean v0: ',v0
 write(*,*) 'Mean part_den_l: ',part_den_l
 
-!Interval length
+!Interval length and mid-points
 do i=1,m
-  if (i.eq.1) then
-    dv(i) = v0_bins(i)-v(0)
-  else
-    dv(i) = v0_bins(i)-v0_bins(i-1)
-  endif
+  v_m(i) = v0_bins(i)
+end do
+do i=2,m
+  dv(i) = v_m(i)-v_m(i-1)
+end do
+dv(1) = dv(2)
+
+!Determine new bounds
+do i=0,m
+  v(i) = v_m(i+1)-0.5D0*dv(i+1)
 end do
 
+!Interval length
+!do i=1,m
+  !if (i.eq.1) then
+  !  dv(i) = v0_bins(i)-v(0)
+  !else
+  !  dv(i) = v0_bins(i)-v0_bins(i-1)
+  !endif
+!end do
+
+!Interval length and mid-points
+
 !Determine mid-points
-do i=1,m
-  v_m(i) = v(i-1)+0.5D0*dv(i)
-end do
+!do i=1,m
+!  v_m(i) = v(i-1)+0.5D0*dv(i)
+!end do
 
 close(iunit)
 
