@@ -39,9 +39,9 @@ case_name = r''#'$\rho_p [kg/m^3]$'
 
 analysis_name = 'EXAMPLE'#'15_dd20nm_k0p005'#'N04p5e10_K96'#'_no_consumption'#'LES_XH2O_55bins_geometric_buthanol'#'TEST'#
 
-NUMBER_DENSITY_BAR_PLOT = False
+NUMBER_DENSITY_BAR_PLOT = True
 NUMBER_DENSITY_SCATTER_PLOT = False
-SATURATION_ANIMATED_PLOTS = True
+SATURATION_ANIMATED_PLOTS = False
 
 ###############################################################################
 
@@ -324,7 +324,7 @@ if NUMBER_DENSITY_SCATTER_PLOT:
     import matplotlib.colors as mcolors
     
     # Define your custom labels (adjust as needed)
-    category_labels = [r'$\textnormal{Aerosol}$', r'$\textnormal{Water}$', r'$\textnormal{Ice}$']
+    category_labels = [r'$\textnormal{Inactive}$', r'$\textnormal{Water}$', r'$\textnormal{Ice}$']
     category_levels = [0, 1, 2]  # Must match values in particle_type[i]
     
     # Use a discrete colormap with 3 colors
@@ -390,7 +390,7 @@ if NUMBER_DENSITY_SCATTER_PLOT:
         # Colorbar with custom category labels
         cbar = plt.colorbar(sc, ax=ax, ticks=category_levels)
         cbar.ax.set_yticklabels(category_labels)
-        cbar.set_label(r'$\textnormal{Particle type}$', fontsize=18)
+        cbar.set_label(r'$\textnormal{Particle status}$', fontsize=18)
         
         plt.tight_layout()
         plt.savefig(plot_hist_dir+'/number_density_it-'+str(int(case))+'.png', dpi=600)
@@ -403,7 +403,7 @@ if NUMBER_DENSITY_BAR_PLOT:
     import matplotlib.colors as mcolors
 
     # Define your custom labels (adjust as needed)
-    category_labels = [r'$\textnormal{Aerosol}$',
+    category_labels = [r'$\textnormal{Inactive}$',
                        r'$\textnormal{Water}$',
                        r'$\textnormal{Ice}$']
     category_levels = [0, 1, 2]  # Must match values in particle_type[i]
@@ -450,7 +450,7 @@ if NUMBER_DENSITY_BAR_PLOT:
         # Custom legend instead of colorbar
         handles = [plt.Rectangle((0, 0), 1, 1, color=category_colors[j], label=category_labels[j])
                    for j in range(3)]
-        ax.legend(handles=handles, title=r'$\textnormal{Particle type}$', fontsize=14, title_fontsize=14)
+        ax.legend(handles=handles, title=r'$\textnormal{Particle status}$', fontsize=14, title_fontsize=14)
 
         plt.tight_layout()
         plt.savefig(plot_hist_dir + '/number_density_it-' + str(int(case)) + '.png', dpi=600)
