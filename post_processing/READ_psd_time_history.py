@@ -382,7 +382,9 @@ if NUMBER_DENSITY_SCATTER_PLOT:
         ax.set_xlim(1, 1E4)#max([max(d_m_i) for d_m_i in d_m]) * 1e9)
         ax.set_ylim(1, max([max(nv) for nv in number_density])+10*max([max(nv) for nv in number_density]))
         
-        plt.title(r'$T_{jet} \textnormal{[K]}=$'+str("${:.1f}$".format(Temperature[int(case)-1]))+'\n'+r'$t \textnormal{[s]}=$'+str("${:.4f}$".format(time[int(case)-1])), fontsize=14)
+        plt.title(r'$S_{mw} \textnormal{[-]}=$' + str("${:.2f}$".format(Smw_consumed[int(case) - 1])) + ',\t \t' +
+                r'$T_{jet} \textnormal{[K]}=$'+str("${:.1f}$".format(Temperature[int(case)-1]))+'\n'+
+                  r'$t \textnormal{[s]}=$'+str("${:.4f}$".format(time[int(case)-1])), fontsize=14)
         
         # Colorbar with custom category labels
         cbar = plt.colorbar(sc, ax=ax, ticks=category_levels)
@@ -438,6 +440,7 @@ if NUMBER_DENSITY_BAR_PLOT:
         ax.set_ylim(1, max([max(nv) for nv in number_density]) + 10 * max([max(nv) for nv in number_density]))
 
         plt.title(
+            r'$S_{mw} \textnormal{[-]}=$' + str("${:.2f}$".format(Smw_consumed[int(case) - 1])) + ',\t \t' +
             r'$T_{jet} \textnormal{[K]}=$' + str("${:.1f}$".format(Temperature[int(case) - 1])) + '\n' +
             r'$t \textnormal{[s]}=$' + str("${:.4f}$".format(time[int(case) - 1])),
             fontsize=14
