@@ -39,8 +39,9 @@ case_name = r''#'$\rho_p [kg/m^3]$'
 
 analysis_name = 'EXAMPLE'#'15_dd20nm_k0p005'#'N04p5e10_K96'#'_no_consumption'#'LES_XH2O_55bins_geometric_buthanol'#'TEST'#
 
-NUMBER_DENSITY_BAR_PLOT = True
+NUMBER_DENSITY_BAR_PLOT = False
 NUMBER_DENSITY_SCATTER_PLOT = False
+SATURATION_ANIMATED_PLOTS = True
 
 ###############################################################################
 
@@ -453,4 +454,47 @@ if NUMBER_DENSITY_BAR_PLOT:
 
         plt.tight_layout()
         plt.savefig(plot_hist_dir + '/number_density_it-' + str(int(case)) + '.png', dpi=600)
+        plt.close()
+
+
+if SATURATION_ANIMATED_PLOTS:
+    plot_hist_dir = create_folder(plot_dir+'/Saturation_plots')
+
+
+    for i, case in enumerate(Sampled_iterations):
+        fig,ax=plt.subplots()
+         
+        ax1=ax.twinx()
+        
+        ax.semilogy(time,moment_0,'k')#,label=r'$0^{th}-moment$')#meansize*1E9,'k')
+        ax.semilogy(time[int(case) - 1],moment_0[int(case) - 1],'ko',fillstyle='none',markersize=10)#,label=r'$0^{th}-moment$')#meansize*1E9,'k')
+        ax1.plot(time,Smw_consumed,'r')#,label=r'$S_{mw}$')
+        ax1.plot(time[int(case) - 1],Smw_consumed[int(case) - 1],'rv',fillstyle='none',markersize=10)#,label=r'$S_{mw}$')
+        
+        if max(activation_binary)>1.0:
+            ax1.plot(time,max(Smw_activated)*np.ones(len(time)),'r',ls='dashed',label=r'$S_{v,c}-vPM$')
+            ax1.plot(time,min(Smw_activated)*np.ones(len(time)),'r',ls='dotted',label=r'$S_{v,c}-nvPM$')
+        else:
+            ax1.plot(time,Smw_activated*np.ones(len(time)),'r',ls='dotted',label=r'$S_{v,c}$')
+        
+        ax.set_xlabel(r'$t [s]$',fontsize=18)
+        ax.set_ylabel(r'$0^{th}-moment$',fontsize=18)
+        ax1.set_ylabel(r'$S_{mw}$',fontsize=18)
+        ax.set_xlim(0,max(time))
+        ax.set_ylim(min(moment_0)-0.12*min(moment_0),max(moment_0)+0.12*max(moment_0))
+        ax1.plot(time,np.ones(len(time)),'r-.',label=r'$S_{v,liq}$')
+        ax1.set_ylim(0,1.5)
+        ax.tick_params(labelsize=18)
+        ax1.tick_params(labelsize=18)
+        
+        ax1.legend(loc='lower right',fontsize=12)
+        #ax.legend(loc='center right',fontsize=12)
+        
+        #Change color
+        ax1.tick_params(axis='y', colors='r')
+        ax1.yaxis.label.set_color('r')
+        
+        plt.tight_layout()
+        
+        plt.savefig(plot_hist_dir + '/Supersaturation_and_number_density_it-' + str(int(case)) + '.png',dpi=600)
         plt.close()
