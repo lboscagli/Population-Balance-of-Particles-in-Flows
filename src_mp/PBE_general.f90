@@ -66,7 +66,7 @@ logical :: consumption_logical !Flag for user activation of consumption of super
 logical :: inps_distribution_logical !Flag to determine whether or not the initial distribution should be read from the input file
 double precision, allocatable, dimension(:) :: kappa_bins, part_rho_bins, v0_bins, ni_new, ni_type !hygroscopicity, mass density nuclei volume size and number density 
 logical, allocatable, dimension(:) :: nuclei_logical, activation_logical_bins !array with logical variable to define if the bin is a nuclei or not
-double precision :: v0_min
+double precision :: v0_min, v0_max
 real(kind=8), allocatable, dimension(:) :: S_vc_bins
 
 integer m,grid_type
@@ -565,12 +565,14 @@ end do
 !!! (dry) radius specified by the user in the input file (ice_nucleating_particles.in) will be used 
 v0_mean = 0.
 v0_min = 1e35
+v0_max = 0.
 part_den_l_mean = 0.
 inps_type_no = 0.
 do i = 1, Nbins_tmp
   if (nuclei_logical(i)) then
     v0_mean = v0_mean + v0_bins(i)
     v0_min = min(v0_min,v0_bins(i))
+    v0_max = max(v0_max,v0_bins(i))
     part_den_l_mean = part_den_l_mean + part_rho_bins(i)
     inps_type_no = inps_type_no + 1.0
   endif  

@@ -107,8 +107,8 @@ else if (growth_function>=4) then
         kappa = kappa_bins(index)
         S_vc = S_vc_bins(index)
       else
-        if (v(index)>=v0) then
-          v0_act = v0
+        if (v(index)>=v0_max) then
+          v0_act = v0_max
         else
           v0_act = v0_min 
           !kappa = kappa_bins(index)
