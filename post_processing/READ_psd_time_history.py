@@ -37,7 +37,7 @@ path = '../pbe/'
 
 case_name = r''#'$\rho_p [kg/m^3]$'
 
-analysis_name = 'TEST'#'15_dd20nm_k0p005'#'N04p5e10_K96'#'_no_consumption'#'LES_XH2O_55bins_geometric_buthanol'#'TEST'#
+analysis_name = 'EXAMPLE'#'15_dd20nm_k0p005'#'N04p5e10_K96'#'_no_consumption'#'LES_XH2O_55bins_geometric_buthanol'#'TEST'#
 
 NUMBER_DENSITY_HISTORY_PLOT = True
 
