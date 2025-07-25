@@ -43,12 +43,12 @@ MODIFICATIONS FOR CONTRAILS MODELLING:
 
 20/06/2025 - Luca Boscagli
 
-This is a modified version of Stelios's book version that includes ice microphysics to model ice kinetics in a non-stationary, homogeneous environment. Simplified model based on Karcher et al. 1996.
+This is a modified version of Stelios's book version that includes ice microphysics to model ice kinetics in a non-stationary, homogeneous environment. Simplified depositional ice-crystal growth model based on Karcher et al. 1996.
 
 
 25/07/2025 - Luca Boscagli
 
-Added functionality for condensational and depositional growth (Karcher et al. 2015) and multi-particle activation (Ponsonby et al. 2025). 
+Added functionality for condensational water drople and depositional ice-crystal growth (Karcher et al. 2015), and multi-particle (vPM and nvPM) activation (Ponsonby et al. 2025). 
 
 1. The new fortran routines I implemented are in the 'src_mp' directory and can be seamlessly compiled with the 'makefile' contained in the 'compile_mp' directory. 
 2. The user can specify discretization of the PBE and characteristics of the nuclei of the particles via a user input file. This can be generated through the python script PBE_input_file.py contained in the 'pre_processing' directory. 
