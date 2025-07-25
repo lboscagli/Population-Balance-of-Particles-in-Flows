@@ -44,12 +44,12 @@ Options:
 
 20/06/2025 - Luca Boscagli
 
-This is a modified version of Stelios's book version that includes ice microphysics to model ice kinetics in a non-stationary, homogeneous environment. Simplified depositional ice-crystal growth model based on Karcher et al. (1996).
+This is a modified version of Stelios's book version that includes ice microphysics to model ice kinetics in a non-stationary, homogeneous environment. Simplified depositional ice-crystal growth model based on [Karcher et al. (1996)](https://doi.org/10.1175/1520-0469(1996)053%3C3066:TICOJC%3E2.0.CO;2).
 
 
 25/07/2025 - Luca Boscagli
 
-Added functionality for condensational water droplet and depositional ice-crystal growth (Karcher et al. 2015), and multi-particle (vPM and nvPM) activation (Ponsonby et al. 2025). 
+Added functionality for condensational water droplet and depositional ice-crystal growth [Kärcher et al. (2015)](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1002/2015JD023491), and multi-particle (vPM and nvPM) activation [Ponsonby et al. 2025](https://doi.org/10.5194/egusphere-2025-1717). 
 
 1. The new fortran routines I implemented are in the 'src_mp' directory and can be seamlessly compiled with the 'makefile' contained in the 'compile_mp' directory. 
 2. The user can specify discretization of the PBE and characteristics of the nuclei of the particles via a user input file. This can be generated through the python script PBE_input_file.py contained in the 'pre_processing' directory. 
