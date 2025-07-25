@@ -39,14 +39,17 @@ Options:
 6. Uniform binary fragmentation: plot psd_analytical.out column 2 (y axis) vs column 1 (x axis) and psd.out column 3 (y axis) vs column 1 (x axis). This plots a comparison of the numerical and analytical solutions in terms of the number distribution, i.e. n(v) - v. See the sample plot frac_un_bin.pdf.
 7. Discrete PBE - aggregation with the Brownian kernel: plot psd_sp_discrete.out column 2 (y axis) vs column 1 (x axis). This plots the self-preserving distribution in terms of the similarity variable, i.e. psi - eta. See the sample plot agg_Brownian_discrete.pdf.
 
-##################################################################################################################################################################################################
+MODIFICATIONS FOR CONTRAILS MODELLING:
 
 20/06/2025 - Luca Boscagli
 
-This is a modified version of Stelios's book version that includes ice microphysics to model ice kinetics in a non-stationary, homogeneous environment
+This is a modified version of Stelios's book version that includes ice microphysics to model ice kinetics in a non-stationary, homogeneous environment. Simplified model based on Karcher et al. 1996.
 
 
 25/07/2025 - Luca Boscagli
 
-Added functionality for multi-particle activation, the new fortran routines are in src_mp and can be compile with the makefile contained in compile_mp. The user can specify discretization of the PBE and characteristics of the nuclei of the particles via a user input file. This can be generated through the python script PBE_input_file.py contained in the 'pre_processing' directory. 
-Results can be analysed via using the plotting functions contained in the python post-processing routines provided in the 'post_processing' directory.
+Added functionality for condensational and depositional growth (Karcher et al. 2015) and multi-particle activation (Ponsonby et al. 2025). 
+
+1. The new fortran routines I implemented are in the 'src_mp' directory and can be seamlessly compiled with the 'makefile' contained in the 'compile_mp' directory. 
+2. The user can specify discretization of the PBE and characteristics of the nuclei of the particles via a user input file. This can be generated through the python script PBE_input_file.py contained in the 'pre_processing' directory. 
+3. Results can be analysed via using the plotting functions contained in the python post-processing routines provided in the 'post_processing' directory.
