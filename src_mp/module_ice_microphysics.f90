@@ -128,10 +128,9 @@ contains
   !
   !**********************************************************************************************
   
-    use pbe_mod, only :v_m, m, dv, v !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
+    use pbe_mod, only :v_m, m, dv, v, v0_max !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
     use pbe_mod, only :current_temp, amb_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
     use pbe_mod, only :Smw_time_series, step_update, r_vc, S_vc
-    use pbe_mod, only :v0_min, v0_max
     use thermo
 
     implicit none
@@ -142,7 +141,7 @@ contains
     double precision, intent(out)              :: g_coeff1_l,g_coeff1_r, g_coeff2
 
     double precision :: p_water_sat_ice,p_water_sat_liq, S_v, S_e !,RH,amb_temp,amb_p,amb_rho
-    double precision :: r_part,r_nuc,r_nuc_max
+    double precision :: r_part,r_nuc,r_part_m
     double precision :: drdt, dmdt
     double precision :: F_M, F_H, lambda_v, Kn_v, beta_M, lambda_a, Kn_a, beta_H
     double precision :: part_den !, part_den_l, part_den_r
@@ -158,21 +157,21 @@ contains
     !Compute droplet particle radius and nucleri (dry) radius from the volume
     r_part = (3.0 / (4.0 * pi) * v(index))**(1.0/3.0)  ! radius of spherically assumed particles computed from the volume at the middle of each bin v_m
     r_nuc = (3.0 / (4.0 * pi) * v0_act)**(1.0/3.0)        ! radius of the nuclei (samllest particle volume) - this is constant
-    r_nuc_max = (3.0 / (4.0 * pi) * (v0_max+dv(index)*0.5)**(1.0/3.0))        ! radius of the nuclei (largest particle volume) - this is constant
+    r_part_m = (3.0 / (4.0 * pi) * v_m(index))**(1.0/3.0)
  
     ! particle density
     part_den = rho_w!(part_den_l * r_nuc**3.0 + rho_w * &
                !             (r_part**3.0 - r_nuc**3.0)) / r_part**3.0  ! particle density
 
     !Compute equilibrium saturation ratio over the particle
-    if (r_part .eq. r_nuc) then
+    if (r_part_m .eq. r_nuc) then
       S_v = S_vc
-    else 
-      if (r_part < r_nuc_max) then
-        S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
-      elseif (r_part > r_nuc_max) then
-        S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
-      endif
+    else  
+      !if (v(index) > v0_max) then
+      S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+      !else
+      !  S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
+      !endif    
       S_v = S_v + 1.0     
     endif
 
@@ -214,22 +213,21 @@ contains
 
     !Compute droplet particle radius from the volume
     r_part = (3.0 / (4.0 * pi) * v(index-1))**(1.0/3.0)  ! radius of spherically assumed particles computed from the volume at the middle of each bin v_m
-    r_nuc_max = (3.0 / (4.0 * pi) * (v0_max-dv(index)*0.5)**(1.0/3.0))        ! radius of the nuclei (largest particle volume) - this is constant
   
     ! particle density
     part_den = rho_w!(part_den_l * r_nuc**3.0 + rho_w * &
                !             (r_part**3.0 - r_nuc**3.0)) / r_part**3.0  ! particle density
 
     !Compute equilibrium saturation ratio over the particle
-    if (r_part .eq. r_nuc) then
+    if (r_part_m .eq. r_nuc) then
       S_v = S_vc
-    else 
-      if (r_part < r_nuc_max) then
-        S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
-      elseif (r_part > r_nuc_max) then
-        S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
-      endif
-      S_v = S_v + 1.0     
+    else  
+      !if (v(index-1) > v0_max) then
+      S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+      !else
+      !  S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
+      !endif   
+      S_v = S_v + 1.0   
     endif
 
     
@@ -277,10 +275,9 @@ contains
   !
   !**********************************************************************************************
   
-    use pbe_mod, only :v_m, m, dv, v !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
+    use pbe_mod, only :v_m, m, dv, v, v0_min, v0_max !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
     use pbe_mod, only :current_temp, amb_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
     use pbe_mod, only :Smw_time_series, step_update, r_vc, S_vc
-    use pbe_mod, only :v0_min, v0_max
     use thermo
 
     implicit none
@@ -291,7 +288,7 @@ contains
     double precision, intent(out)              :: g_coeff1_l,g_coeff1_r, g_coeff2
 
     double precision :: p_water_sat_ice,p_water_sat_liq, S_v !,RH,amb_temp,amb_p,amb_rho
-    double precision :: r_part,r_nuc,den_ice,r_nuc_max
+    double precision :: r_part,r_nuc,den_ice,r_part_m
     double precision :: drdt, dmdt, denom_dmdt
     double precision :: lambda_v, lambda_a, beta_v, beta_k, rho_air_dry
     double precision :: part_den !, part_den_l, part_den_r
@@ -308,7 +305,7 @@ contains
     !Compute droplet particle radius and nucleri (dry) radius from the volume
     r_part = (3.0 / (4.0 * pi) * v(index))**(1.0/3.0)  ! radius of spherically assumed particles computed from the volume at the middle of each bin v_m
     r_nuc = (3.0 / (4.0 * pi) * v0_act)**(1.0/3.0)        ! radius of the nuclei (samllest particle volume) - this is constant
-    r_nuc_max = (3.0 / (4.0 * pi) * (v0_max+dv(index)*0.5)**(1.0/3.0))        ! radius of the nuclei (largest particle volume) - this is constant
+    r_part_m = (3.0 / (4.0 * pi) * v_m(index))**(1.0/3.0)
 
     ! Constant ice particle density 
     den_ice = 917.0  
@@ -317,15 +314,17 @@ contains
                !             (r_part**3.0 - r_nuc**3.0)) / r_part**3.0  ! particle density
 
     !Compute equilibrium saturation ratio over the particle
-    if (r_part .eq. r_nuc) then
+    if (r_part_m .eq. r_nuc) then
       S_v = S_vc
-    else 
-      if (r_part < r_nuc_max) then
-        S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
-      elseif (r_part > r_nuc_max) then
-        S_v = Seq_ice(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
-      endif
-      S_v = S_v + 1.0     
+      !write(*,*) 'r_part',r_nuc
+      !write(*,*) 'S_v',S_vc
+    else  
+      !if (v(index) > v0_max) then
+      S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+      !else
+      !  S_v = Seq_ice(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
+      !endif
+      S_v = S_v + 1.0   
     endif
 
     ! Saturation presure over ice and liquid
@@ -362,22 +361,21 @@ contains
 
     !Compute droplet particle radius  from the volume
     r_part = (3.0 / (4.0 * pi) * v(index-1))**(1.0/3.0)  ! radius of spherically assumed particles computed from the volume at the middle of each bin v_m
-    r_nuc_max = (3.0 / (4.0 * pi) * (v0_max-dv(index)*0.5)**(1.0/3.0))        ! radius of the nuclei (largest particle volume) - this is constant
 
     ! particle density
     part_den = den_ice!(part_den_l * r_nuc**3.0 + den_ice * &
                !             (r_part**3.0 - r_nuc**3.0)) / r_part**3.0  ! particle density
 
     !Compute equilibrium saturation ratio over the particle
-    if (r_part .eq. r_nuc) then
+    if (r_part_m .eq. r_nuc) then
       S_v = S_vc
-    else 
-      if (r_part < r_nuc_max) then
-        S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
-      elseif (r_part > r_nuc_max) then
-        S_v = Seq_ice(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
-      endif
-      S_v = S_v + 1.0     
+    else  
+      !if (v(index-1) > v0_max) then
+      S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+      !else
+      !  S_v = Seq_ice(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
+      !endif     
+      S_v = S_v + 1.0   
     endif
 
 
