@@ -168,10 +168,10 @@ contains
       S_v = S_vc
     else  
       if (v(index) > v0_max) then
-        S_v = Seq(r_part, 0.d0, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+        !S_v = Seq(r_part, 0.d0, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+        S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
       else
-        S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
-        !S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
+        S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
       endif    
       S_v = S_v + 1.0     
     endif
@@ -224,10 +224,10 @@ contains
       S_v = S_vc
     else  
       if (v(index-1) > v0_max) then
-        S_v = Seq(r_part, 0.d0, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+        !S_v = Seq(r_part, 0.d0, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+        S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
       else
-        S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
-        !S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom     
+        S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom     
       endif   
       S_v = S_v + 1.0   
     endif
@@ -316,19 +316,21 @@ contains
                !             (r_part**3.0 - r_nuc**3.0)) / r_part**3.0  ! particle density
 
     !Compute equilibrium saturation ratio over the particle
-    if (r_part_m .eq. r_nuc) then
-      S_v = S_vc
-      !write(*,*) 'r_part',r_nuc
-      !write(*,*) 'S_v',S_vc
-    else  
-      if (v(index) > v0_max) then
-        S_v = Seq(r_part, 0.d0, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
-      else
-        S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom     
-        !S_v = Seq_ice(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
-      endif  
-      S_v = S_v + 1.0   
-    endif
+    !if (r_part_m .eq. r_nuc) then
+    !  S_v = S_vc
+    !  !write(*,*) 'r_part',r_nuc
+    !  !write(*,*) 'S_v',S_vc
+    !else  
+    !  if (v(index) > v0_max) then
+    !    !S_v = Seq(r_part, 0.d0, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+    !    S_v = Seq_ice(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom 
+    !  else
+    !    S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom          
+    !  endif  
+    !  S_v = S_v + 1.0   
+    !endif
+    S_v = Seq_ice(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom 
+    S_v = S_v + 1.0
 
     ! Saturation presure over ice and liquid
     call p_sat_ice_murphy_koop(p_water_sat_ice)
@@ -370,18 +372,19 @@ contains
                !             (r_part**3.0 - r_nuc**3.0)) / r_part**3.0  ! particle density
 
     !Compute equilibrium saturation ratio over the particle
-    if (r_part_m .eq. r_nuc) then
-      S_v = S_vc
-    else  
-      if (v(index-1) > v0_max) then
-        S_v = Seq(r_part, 0.d0, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
-      else
-        S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom     
-        !S_v = Seq_ice(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
-      endif     
-      S_v = S_v + 1.0   
-    endif
-
+    !if (r_part_m .eq. r_nuc) then
+    !  S_v = S_vc
+    !else  
+    !  if (v(index-1) > v0_max) then
+    !    !S_v = Seq(r_part, 0.d0, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+    !    S_v = Seq_ice(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+    !  else
+    !    S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom           
+    !  endif     
+    !  S_v = S_v + 1.0   
+    !endif
+    S_v = Seq_ice(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom 
+    S_v = S_v + 1.0
 
     !correction for mass diffusion term to account for non continuum effects (large knudsen)
     lambda_v = 2 * dv_cont(current_temp, amb_p) * SQRT(1.0 / (2 * (gascon/M_water) * current_temp))
