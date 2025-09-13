@@ -57,6 +57,7 @@ real, allocatable :: Smw_time_series(:)
 double precision, allocatable :: T_time_series(:) !plume temperature time series
 double precision :: plume_cooling_rate !plume cooling rate
 double precision :: T_frz ! Luca - freezing temperature
+double precision :: inps_type_no !number of aerosol particle that may activate
 
 logical :: activation_logical !Water droplet activation flag (initialize as .false. and then check saturation)
 logical :: consumption_logical !Flag for user activation of consumption of supersaturation based on K15 model
@@ -506,7 +507,7 @@ use pbe_mod
 implicit none
 
 ! Locals
-double precision :: part_den_l_mean, v0_mean, inps_type_no
+double precision :: part_den_l_mean, v0_mean!, inps_type_no
 integer :: ios, i, ierr, Nbins_tmp, iunit
 character(len=256) :: line
 iunit = 10
@@ -593,7 +594,9 @@ end do
 dv(1) = dv(2)
 
 !Determine new bounds
+!v(0) = v_m(1)-0.5D0*dv(1)
 do i=0,m
+  !v(i) = v(i-1) + dv(i)
   v(i) = v_m(i+1)-0.5D0*dv(i+1)
 end do
 

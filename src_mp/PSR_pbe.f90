@@ -68,7 +68,7 @@ subroutine psr_pbe()
 
   if (inps_distribution_logical) then 
     write(*,*) 'Re-initialize PBE grid and operating conditions based on user input file named ice_nucleating_particles.in'    
-    call pbe_file_init(ni_new)
+    call pbe_file_init()
     allocate(activation_logical_bins(n_pbe_grid))
     allocate(S_vc_bins(n_pbe_grid))
     do i=1,m

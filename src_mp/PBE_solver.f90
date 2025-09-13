@@ -128,6 +128,7 @@ subroutine pbe_ydot(ni,niprime)
 !**********************************************************************************************
 
 use pbe_mod
+use thermo
 
 implicit none
 
@@ -170,6 +171,24 @@ end if
 
 !Growth
 if (growth_function>0) then
+
+  if (growth_function .eq. 7) then
+   !Check k-kholer condition for each index if it is a nuclei
+    do index = 1,m
+      if (nuclei_logical(index) .and. (.not. activation_logical_bins(index))) then
+        call kohler_crit(current_temp, (3.0 / (4.0 * 3.141592653589793E+00) * v0_bins(index) )**(1.0/3.0), kappa_bins(index), .false., r_vc, S_vc)
+        S_vc = S_vc + 1.0
+        if ((Smw_time_series(step_update) .ge. S_vc)) then 
+          !activation_logical = .true.
+          activation_logical_bins(index) = .true.
+          S_vc_bins(index) = S_vc
+          write(*,*) 'S_vc [-]',S_vc
+          write(*,*) 'r_vc [nm]',r_vc*1E9
+        endif
+      endif  
+    end do
+  endif 
+
   do index = 1,m
     call growth_tvd(ni,index,growth_source,G_m)
     niprime(index) = niprime(index) + growth_source

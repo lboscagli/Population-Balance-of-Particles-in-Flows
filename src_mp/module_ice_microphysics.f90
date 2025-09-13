@@ -130,7 +130,7 @@ contains
   
     use pbe_mod, only :v_m, m, dv, v, v0_max !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
     use pbe_mod, only :current_temp, amb_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
-    use pbe_mod, only :Smw_time_series, step_update, r_vc, S_vc
+    use pbe_mod, only :Smw_time_series, step_update, r_vc, S_vc, inps_type_no
     use thermo
 
     implicit none
@@ -167,7 +167,7 @@ contains
     if (r_part_m .eq. r_nuc) then
       S_v = S_vc
     else  
-      if (v(index) > v0_max) then
+      if ((v(index) > v0_max) .and. (inps_type_no .ge. 2)) then
         !S_v = Seq(r_part, 0.d0, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
         S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
       else
@@ -195,6 +195,7 @@ contains
     
     !Compute droplet mass growth 
     dmdt = (4*pi*r_part) * (Smw_time_series(step_update)*p_water_sat_liq - S_v*p_water_sat_liq) / (F_m/beta_M + F_H*beta_H)
+    !dmdt = (4*pi*r_part) * (Smw_time_series(step_update) - S_v) / (F_m/beta_M + F_H*beta_H)
 
     !Compute droplet radial growth 
     drdt = dmdt / (4 * pi * part_den * r_part**2)
@@ -223,7 +224,7 @@ contains
     if (r_part_m .eq. r_nuc) then
       S_v = S_vc
     else  
-      if (v(index-1) > v0_max) then
+      if ((v(index-1) > v0_max) .and. (inps_type_no .ge. 2)) then
         !S_v = Seq(r_part, 0.d0, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
         S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
       else
@@ -248,6 +249,7 @@ contains
     
     !Compute droplet mass growth 
     dmdt = (4*pi*r_part) * (Smw_time_series(step_update)*p_water_sat_liq - S_v*p_water_sat_liq) / (F_m/beta_M + F_H*beta_H)
+    !dmdt = (4*pi*r_part) * (Smw_time_series(step_update) - S_v) / (F_m/beta_M + F_H*beta_H)
 
     !Compute droplet radial growth 
     drdt = dmdt / (4 * pi * part_den * r_part**2)
@@ -572,7 +574,7 @@ contains
     
   end subroutine pbe_depositional_growth_ice
 
-  subroutine pbe_freezing_temperature(index, T_frz)
+  subroutine pbe_freezing_temperature(index, v0_act, v0_max, T_frz)
 
   !**********************************************************************************************
   !
@@ -586,12 +588,13 @@ contains
   !**********************************************************************************************
 
     use pbe_mod, only :v0, v_m, m, dv, v !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
-    use pbe_mod, only :current_temp, plume_cooling_rate
+    use pbe_mod, only :current_temp, plume_cooling_rate, inps_type_no
     use thermo
 
     implicit none
   
     integer, intent(in)  :: index
+    double precision, intent(in)  :: v0_act, v0_max
     double precision, intent(out)  :: T_frz
 
     double precision :: LWV, J_freez_rate_coeff
@@ -603,6 +606,17 @@ contains
 
     !Compute liquid water volume (LWV)
     LWV = v_m(index) !- v0 : to deal with multiple particles we make an assumption here as we use only the wet diameter
+
+    !Compute liquid water volume (LWV)
+    if (v_m(index) .le. v0_max) then
+      LWV = v_m(index) - v0_act 
+    else
+      LWV = v_m(index) ! : to deal with multiple particles we make an assumption here as we use only the wet diameter
+    endif
+
+    if (inps_type_no .le. 1) then
+      LWV = v_m(index) - v0_act
+    endif
 
     !COmpute freezing rate coefficient
     J_freez_rate_coeff = 1E6 * exp(a_1*current_temp + a_2)

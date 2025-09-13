@@ -78,7 +78,7 @@ else if (growth_function>=4) then
     else
       v0_act = v0
     endif
-    call pbe_freezing_temperature(index, T_frz)
+    call pbe_freezing_temperature(index, v0_act, v0_max, T_frz)
     !Depositional growth model activation (Karcher et al. 1996)
     if (((p_water .ge. p_sat_liq))) then ! .and. (current_temp > T_frz)) .or. ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz))) then !SAC criterion
       activation_logical = .true.
@@ -107,7 +107,7 @@ else if (growth_function>=4) then
         kappa = kappa_bins(index)
         S_vc = S_vc_bins(index)
       else
-        if (v_m(index)>=v0_max) then
+        if (v(index)>=v0_max) then
           v0_act = v0_max
         else
           v0_act = v0_min 
@@ -116,12 +116,15 @@ else if (growth_function>=4) then
       endif
       ! Compute freezing temperature neeeded to check if freezing-relaxation starts based on freezing temperature
       ! Note that freezing temperature depends on liquid volume available for freezing (i.e., depends on (v(index)-v_0))
-      call pbe_freezing_temperature(index, T_frz)
+      call pbe_freezing_temperature(index, v0_act, v0_max, T_frz)
 
       !Droplet activation and growth based on Ponsonby et al. 2025
+      !if (((ni(index)>0)) .and. (activation_logical_bins(index))) then
       if ((activation_logical) .and. (activation_logical_bins(index))) then 
         if ((p_water .ge. p_sat_liq) .and. (current_temp > T_frz)) then
           !write(*,*) 'Condensational growth'
+          !call kohler_crit(current_temp, (3.0 / (4.0 * 3.141592653589793E+00) * v0_act)**(1.0/3.0), kappa, .false., r_vc, S_vc)
+          !S_vc = S_vc + 1.0          
           call pbe_condensational_droplet_growth_Bier(index,ni,v0_act, g_coeff1_l,g_coeff1_r,g_coeff2)
           ni_type(index) = 1.0 
           if (g_coeff1_l .ne. g_coeff1_l_prev) then
@@ -165,7 +168,7 @@ else if (growth_function>=4) then
 
       ! Compute freezing temperature neeeded to check if freezing-relaxation starts based on freezing temperature
       ! Note that freezing temperature depends on liquid volume available for freezing (i.e., depends on (v(index)-v_0))
-      call pbe_freezing_temperature(index, T_frz)
+      call pbe_freezing_temperature(index, v0_act, v0_max, T_frz)
 
       !Droplet activation and growth based on Ponsonby et al. 2025
       if ((activation_logical)) then 
@@ -211,6 +214,60 @@ else if (growth_function>=4) then
 
     ! left growth rate
     g_terml = g_coeff1_l*(v(index-1)**g_coeff2) 
+
+  elseif (growth_function==7) then
+    if (nuclei_logical(index)) then
+      v0_act = v0_bins(index)  
+      kappa = kappa_bins(index)
+      S_vc = S_vc_bins(index)
+    else
+      if (v(index)>=v0_max) then
+        v0_act = v0_max
+      else
+        v0_act = v0_min 
+      endif
+    endif
+    ! Compute freezing temperature neeeded to check if freezing-relaxation starts based on freezing temperature
+    ! Note that freezing temperature depends on liquid volume available for freezing (i.e., depends on (v(index)-v_0))
+    call pbe_freezing_temperature(index, v0_act, v0_max, T_frz)
+
+    !Droplet activation and growth based on Ponsonby et al. 2025
+    if (activation_logical_bins(index)) then 
+      if ((p_water .ge. p_sat_liq) .and. (current_temp > T_frz)) then
+        !write(*,*) 'Condensational growth'         
+        call pbe_condensational_droplet_growth_Bier(index,ni,v0_act, g_coeff1_l,g_coeff1_r,g_coeff2)
+        ni_type(index) = 1.0 
+        if (g_coeff1_l .ne. g_coeff1_l_prev) then
+          g_coeff1_l = g_coeff1_l_prev
+        endif
+      elseif ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz)) then 
+        !write(*,*) 'Depositional growth'
+        call pbe_depositional_growth_ice_Bier(index,ni,v0_act, g_coeff1_l,g_coeff1_r,g_coeff2) 
+        ni_type(index) = 2.0
+        if (g_coeff1_l .ne. g_coeff1_l_prev) then
+          g_coeff1_l = g_coeff1_l_prev
+        endif
+      else
+        g_coeff1_l = 0.0
+        g_coeff1_r = 0.0
+        g_coeff2 = 0.0 
+      endif
+    else
+      g_coeff1_l = 0.0
+      g_coeff1_r = 0.0
+      g_coeff2 = 0.0 
+    endif
+    
+    !Store previous solution
+    g_coeff1_l_prev = g_coeff1_r
+
+    ! right growth rate
+    g_termr = g_coeff1_r*(v(index)**g_coeff2)
+
+    ! left growth rate
+    g_terml = g_coeff1_l*(v(index-1)**g_coeff2)     
+    
+
   endif
 
   g_coeff1 = g_coeff1_r
