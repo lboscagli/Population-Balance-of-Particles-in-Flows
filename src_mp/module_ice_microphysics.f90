@@ -128,9 +128,9 @@ contains
   !
   !**********************************************************************************************
   
-    use pbe_mod, only :v_m, m, dv, v, v0_max !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
+    use pbe_mod, only :v_m, m, dv, v, v0_max, v0_min !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
     use pbe_mod, only :current_temp, amb_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
-    use pbe_mod, only :Smw_time_series, step_update, r_vc, S_vc, inps_type_no
+    use pbe_mod, only :Smw_time_series, step_update, r_vc, S_vc, inps_type_no, activation_logical_bins, part_rho_bins, Loss_Sw_bins
     use thermo
 
     implicit none
@@ -141,7 +141,7 @@ contains
     double precision, intent(out)              :: g_coeff1_l,g_coeff1_r, g_coeff2
 
     double precision :: p_water_sat_ice,p_water_sat_liq, S_v, S_e !,RH,amb_temp,amb_p,amb_rho
-    double precision :: r_part,r_nuc,r_part_m
+    double precision :: r_part,r_nuc,r_part_m,r_part_min
     double precision :: drdt, dmdt
     double precision :: F_M, F_H, lambda_v, Kn_v, beta_M, lambda_a, Kn_a, beta_H
     double precision :: part_den !, part_den_l, part_den_r
@@ -151,20 +151,48 @@ contains
     double precision :: gascon=8314.3
     double precision :: M_water = 18.016 ! molar weight of water [kg/mol]
     double precision :: M_air = 28.96 ! molar weight of dry air [kg/mol]
+    integer :: j, active
     
+    active = 0
+    do j=1,m
+      if (activation_logical_bins(j)) then
+        active = active + 1
+      endif
+    enddo
+
     !Right side
 
     !Compute droplet particle radius and nucleri (dry) radius from the volume
     r_part = (3.0 / (4.0 * pi) * v(index))**(1.0/3.0)  ! radius of spherically assumed particles computed from the volume at the middle of each bin v_m
     r_nuc = (3.0 / (4.0 * pi) * v0_act)**(1.0/3.0)        ! radius of the nuclei (samllest particle volume) - this is constant
     r_part_m = (3.0 / (4.0 * pi) * v_m(index))**(1.0/3.0)
+    r_part_min = (3.0 / (4.0 * pi) * v0_min)**(1.0/3.0)
  
     ! particle density
     part_den = rho_w!(part_den_l * r_nuc**3.0 + rho_w * &
                !             (r_part**3.0 - r_nuc**3.0)) / r_part**3.0  ! particle density
 
     !Compute equilibrium saturation ratio over the particle
-    if (r_part_m .eq. r_nuc) then
+    !if ((r_part <= r_vc) .and. (r_part_m .ge. r_nuc)) then! .and. (v_m(index) <= v0_max)) then
+    !  S_v = S_vc
+    !  !write(*,*) 'S_v',S_vc
+    !  !write(*,*) 'index',index
+    !  !part_den = part_rho_bins(index)
+    !else  
+    !  if ((v_m(index) > v0_max) .and. (active .ge. 2)) then !if ((v_m(index) .ge. v0_max) .and. (inps_type_no .ge. 2)) then
+    !    !S_v = Seq(r_part, 0.d0, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+    !    S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+    !  else
+    !    S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
+    !    !part_den = part_den_l
+    !  endif    
+    !  S_v = S_v + 1.0     
+    !endif 
+    !S_v = Seq_water(r_part, current_temp)
+    !S_v = S_v + 1.0
+    
+    !Compute equilibrium saturation ratio over the particle
+    if ((r_part_m .eq. r_nuc)) then
       S_v = S_vc
     else  
       if ((v(index) > v0_max) .and. (inps_type_no .ge. 2)) then
@@ -174,7 +202,7 @@ contains
         S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
       endif    
       S_v = S_v + 1.0     
-    endif
+    endif  
 
     ! Saturation presure over liquid
     call p_sat_liq_murphy_koop(p_water_sat_liq)
@@ -201,15 +229,22 @@ contains
     drdt = dmdt / (4 * pi * part_den * r_part**2)
 
     !write(*,*) 'Condensational growth'
-    !write(*,*) 'drdt',drdt
+    !write(*,*) 'drdt',drdt  
+
+    if ((r_part < r_nuc) .and. (active < 2)) then
+      drdt = -1.0
+    endif    
 
     g_coeff2 = 2.0 / 3.0 
     if (drdt .ge. 0) then
        g_coeff1_r = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
        Loss_Sw = Loss_Sw + (amb_p/p_water_sat_liq/epsilon_fluid) * pi * part_den / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
+       Loss_Sw_bins(index) = (amb_p/p_water_sat_liq/epsilon_fluid) * pi * part_den / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
     else
        g_coeff1_r = 0.0
+       Loss_Sw_bins(index) = 0.0
     endif
+    
 
     !Left side
 
@@ -221,7 +256,26 @@ contains
                !             (r_part**3.0 - r_nuc**3.0)) / r_part**3.0  ! particle density
 
     !Compute equilibrium saturation ratio over the particle
-    if (r_part_m .eq. r_nuc) then
+    !if ((r_part <= r_vc) .and. (r_part_m .ge. r_nuc)) then! .and. (v_m(index) <= v0_max)) then
+    !  S_v = S_vc
+    !  !write(*,*) 'S_v',S_vc
+    !  !write(*,*) 'index',index
+    !  !part_den = part_den_l
+    !else  
+    !  if ((v_m(index) > v0_max) .and. (active .ge. 2)) then
+    !    !S_v = Seq(r_part, 0.d0, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+    !    S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+    !  else
+    !    S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
+    !    !part_den = part_den_l
+    !  endif    
+    !  S_v = S_v + 1.0     
+    !endif  
+    !S_v = Seq_water(r_part, current_temp)
+    !S_v = S_v + 1.0
+
+    !Compute equilibrium saturation ratio over the particle
+    if ((r_part_m .eq. r_nuc)) then
       S_v = S_vc
     else  
       if ((v(index-1) > v0_max) .and. (inps_type_no .ge. 2)) then
@@ -233,7 +287,7 @@ contains
       S_v = S_v + 1.0   
     endif
 
-    
+
     !Mass (M) diffusion term
     F_M = (gascon/M_water)*current_temp/dv_cont(current_temp, amb_p)
     !Heat (H) diffusion term
@@ -257,12 +311,16 @@ contains
     !write(*,*) 'Condensational growth'
     !write(*,*) 'drdt',drdt
 
-    if (drdt .ge. 0) then
+    if ((r_part < r_nuc) .and. (active < 2)) then
+      drdt = -1.0
+    endif
+
+    if ((drdt .ge. 0)) then
        g_coeff1_l = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
     else
        g_coeff1_l = 0.0
     endif
-    
+   
   
   end subroutine pbe_condensational_droplet_growth_Bier   
 
@@ -281,7 +339,7 @@ contains
   
     use pbe_mod, only :v_m, m, dv, v, v0_min, v0_max !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
     use pbe_mod, only :current_temp, amb_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
-    use pbe_mod, only :Smw_time_series, step_update, r_vc, S_vc
+    use pbe_mod, only :Smw_time_series, step_update, r_vc, S_vc, Loss_Sw_bins
     use thermo
 
     implicit none
@@ -292,7 +350,7 @@ contains
     double precision, intent(out)              :: g_coeff1_l,g_coeff1_r, g_coeff2
 
     double precision :: p_water_sat_ice,p_water_sat_liq, S_v !,RH,amb_temp,amb_p,amb_rho
-    double precision :: r_part,r_nuc,den_ice,r_part_m
+    double precision :: r_part,r_nuc,den_ice,r_part_m,r_part_min
     double precision :: drdt, dmdt, denom_dmdt
     double precision :: lambda_v, lambda_a, beta_v, beta_k, rho_air_dry
     double precision :: part_den !, part_den_l, part_den_r
@@ -310,6 +368,7 @@ contains
     r_part = (3.0 / (4.0 * pi) * v(index))**(1.0/3.0)  ! radius of spherically assumed particles computed from the volume at the middle of each bin v_m
     r_nuc = (3.0 / (4.0 * pi) * v0_act)**(1.0/3.0)        ! radius of the nuclei (samllest particle volume) - this is constant
     r_part_m = (3.0 / (4.0 * pi) * v_m(index))**(1.0/3.0)
+    r_part_min = (3.0 / (4.0 * pi) * MINVAL(v_m(:)))**(1.0/3.0)
 
     ! Constant ice particle density 
     den_ice = 917.0  
@@ -331,7 +390,7 @@ contains
     !  endif  
     !  S_v = S_v + 1.0   
     !endif
-    S_v = Seq_ice(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom 
+    S_v = Seq_water(r_part, current_temp)!S_v = Seq_ice(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom 
     S_v = S_v + 1.0
 
     ! Saturation presure over ice and liquid
@@ -360,8 +419,10 @@ contains
     if (drdt .ge. 0) then
        g_coeff1_r = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
        Loss_Sw = Loss_Sw + (amb_p/p_water_sat_liq/epsilon_fluid) * pi * part_den / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
+       Loss_Sw_bins(index) = (amb_p/p_water_sat_liq/epsilon_fluid) * pi * part_den / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
     else
        g_coeff1_r = 0.0
+       Loss_Sw_bins(index) = 0.0
     endif
 
     !Left side
@@ -385,7 +446,8 @@ contains
     !  endif     
     !  S_v = S_v + 1.0   
     !endif
-    S_v = Seq_ice(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom 
+
+    S_v = Seq_water(r_part, current_temp) !S_v = Seq_ice(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom 
     S_v = S_v + 1.0
 
     !correction for mass diffusion term to account for non continuum effects (large knudsen)
@@ -406,11 +468,12 @@ contains
     !write(*,*) 'Depositional growth'
     !write(*,*) 'drdt',drdt
 
-    if (drdt .ge. 0) then
+    if ((drdt .ge. 0)) then ! .and. (r_part .ge. r_part_min)) then
        g_coeff1_l = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
     else
        g_coeff1_l = 0.0
     endif    
+
   
   end subroutine pbe_depositional_growth_ice_Bier  
 
@@ -434,7 +497,7 @@ contains
     !use chemistry, only : nsp,fsc,temp,sumn,names,wm
     !use euler_part_interface
     use pbe_mod, only :v_m, m, dv, v !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
-    use pbe_mod, only :current_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, Loss_Sw, current_rho  
+    use pbe_mod, only :current_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, Loss_Sw, current_rho, Loss_Sw_bins  
     use thermo
 
     implicit none
@@ -526,8 +589,10 @@ contains
     if (drdt .ge. 0) then
       g_coeff1_r = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
       Loss_Sw = Loss_Sw + (amb_p/p_water_sat_liq/epsilon_fluid) * pi * part_den / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
+      Loss_Sw_bins(index) = (amb_p/p_water_sat_liq/epsilon_fluid) * pi * part_den / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
     else
        g_coeff1_r = 0.0
+       Loss_Sw_bins(index) = 0.0
     endif    
 
     !Left side
@@ -588,7 +653,7 @@ contains
   !**********************************************************************************************
 
     use pbe_mod, only :v0, v_m, m, dv, v !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
-    use pbe_mod, only :current_temp, plume_cooling_rate, inps_type_no
+    use pbe_mod, only :current_temp, plume_cooling_rate, inps_type_no, activation_logical_bins, v0_bins
     use thermo
 
     implicit none
@@ -602,21 +667,31 @@ contains
     double precision :: gascon=8314.3
     double precision :: a_1=-3.5714 !(1/K) - Karcher et al
     double precision :: a_2=858.719
+
+    integer :: j, active
     
+    active = 0
+    do j=1,m
+      if (activation_logical_bins(j)) then
+        active = active + 1
+      endif
+    enddo   
 
     !Compute liquid water volume (LWV)
-    LWV = v_m(index) !- v0 : to deal with multiple particles we make an assumption here as we use only the wet diameter
+    !LWV = v_m(index) !- v0 : to deal with multiple particles we make an assumption here as we use only the wet diameter
 
     !Compute liquid water volume (LWV)
-    if (v_m(index) .le. v0_max) then
-      LWV = v_m(index) - v0_act 
+    if ((active < 2) .or. (v_m(index) .eq. minval(v0_bins(:)))) then !(v_m(index) < v0_max) then
+      LWV = v_m(index) - v0_act
+    !elseif ((v_m(index) .eq. v0_max) .and. (active < 2)) then
+    !  LWV = v_m(index) - v0_act
     else
       LWV = v_m(index) ! : to deal with multiple particles we make an assumption here as we use only the wet diameter
     endif
 
-    if (inps_type_no .le. 1) then
-      LWV = v_m(index) - v0_act
-    endif
+    !if (inps_type_no .le. 1) then
+    !  LWV = v_m(index) - v0_act
+    !endif
 
     !COmpute freezing rate coefficient
     J_freez_rate_coeff = 1E6 * exp(a_1*current_temp + a_2)

@@ -86,6 +86,7 @@ else if (growth_function>=4) then
       ni_type(index) = 2.0
       if (g_coeff1_l .ne. g_coeff1_l_prev) then
         g_coeff1_l = g_coeff1_l_prev
+        !Loss_Sw = Loss_Sw_prev
       endif
     else
       g_coeff1_l = 0.0
@@ -93,6 +94,7 @@ else if (growth_function>=4) then
       g_coeff2 = 0.0      
     endif
     g_coeff1_l_prev = g_coeff1_r
+    Loss_Sw_prev = Loss_Sw
 
     ! right growth rate
     g_termr = g_coeff1_r*(v(index)**g_coeff2)
@@ -129,6 +131,7 @@ else if (growth_function>=4) then
           ni_type(index) = 1.0 
           if (g_coeff1_l .ne. g_coeff1_l_prev) then
             g_coeff1_l = g_coeff1_l_prev
+            !Loss_Sw = Loss_Sw_prev
           endif
         elseif ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz)) then 
           !write(*,*) 'Depositional growth'
@@ -136,6 +139,7 @@ else if (growth_function>=4) then
           ni_type(index) = 2.0
           if (g_coeff1_l .ne. g_coeff1_l_prev) then
             g_coeff1_l = g_coeff1_l_prev
+            !Loss_Sw = Loss_Sw_prev
           endif
         else
           g_coeff1_l = 0.0
@@ -143,6 +147,7 @@ else if (growth_function>=4) then
           g_coeff2 = 0.0 
         endif
         g_coeff1_l_prev = g_coeff1_r
+        Loss_Sw_prev = Loss_Sw
       else
         call kohler_crit(current_temp, (3.0 / (4.0 * 3.141592653589793E+00) * v0_act)**(1.0/3.0), kappa, .false., r_vc, S_vc)
         S_vc = S_vc + 1.0
@@ -160,6 +165,7 @@ else if (growth_function>=4) then
           g_coeff2 = 0.0 
         endif
         g_coeff1_l_prev = g_coeff1_r
+        Loss_Sw_prev = Loss_Sw
       
       endif
       
@@ -178,6 +184,7 @@ else if (growth_function>=4) then
           ni_type(index) = 1.0
           if (g_coeff1_l .ne. g_coeff1_l_prev) then
             g_coeff1_l = g_coeff1_l_prev
+            !Loss_Sw = Loss_Sw_prev
           endif  
         elseif ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz)) then 
           !write(*,*) 'Depositional growth'
@@ -185,6 +192,7 @@ else if (growth_function>=4) then
           ni_type(index) = 2.0
           if (g_coeff1_l .ne. g_coeff1_l_prev) then
             g_coeff1_l = g_coeff1_l_prev
+            !Loss_Sw = Loss_Sw_prev
           endif
         else
           g_coeff1_l = 0.0
@@ -192,6 +200,7 @@ else if (growth_function>=4) then
           g_coeff2 = 0.0 
         endif
         g_coeff1_l_prev = g_coeff1_r
+        Loss_Sw_prev = Loss_Sw
       else
         call kohler_crit(current_temp, (3.0 / (4.0 * 3.141592653589793E+00) * v0_act)**(1.0/3.0), kappa, .false., r_vc, S_vc)
         S_vc = S_vc + 1.0
@@ -205,6 +214,7 @@ else if (growth_function>=4) then
           g_coeff2 = 0.0 
         endif
         g_coeff1_l_prev = g_coeff1_r
+        Loss_Sw_prev = Loss_Sw
       endif    
     endif
     !g_coeff1_l_prev = g_coeff1_r
@@ -221,7 +231,7 @@ else if (growth_function>=4) then
       kappa = kappa_bins(index)
       S_vc = S_vc_bins(index)
     else
-      if (v(index)>=v0_max) then
+      if (v_m(index)>=v0_max) then
         v0_act = v0_max
       else
         v0_act = v0_min 
@@ -236,21 +246,27 @@ else if (growth_function>=4) then
       if ((p_water .ge. p_sat_liq) .and. (current_temp > T_frz)) then
         !write(*,*) 'Condensational growth'         
         call pbe_condensational_droplet_growth_Bier(index,ni,v0_act, g_coeff1_l,g_coeff1_r,g_coeff2)
-        ni_type(index) = 1.0 
+        if (ni(index) > 0) then
+          ni_type(index) = 1.0 
+        endif
         if (g_coeff1_l .ne. g_coeff1_l_prev) then
           g_coeff1_l = g_coeff1_l_prev
+          !Loss_Sw = Loss_Sw_prev
         endif
-      elseif ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz)) then 
+      elseif ((p_water .ge. p_sat_ice)) then 
         !write(*,*) 'Depositional growth'
         call pbe_depositional_growth_ice_Bier(index,ni,v0_act, g_coeff1_l,g_coeff1_r,g_coeff2) 
-        ni_type(index) = 2.0
+        if (ni(index) > 0) then
+          ni_type(index) = 2.0 
+        endif
         if (g_coeff1_l .ne. g_coeff1_l_prev) then
           g_coeff1_l = g_coeff1_l_prev
+          !Loss_Sw = Loss_Sw_prev
         endif
       else
         g_coeff1_l = 0.0
         g_coeff1_r = 0.0
-        g_coeff2 = 0.0 
+        g_coeff2 = 0.0                   
       endif
     else
       g_coeff1_l = 0.0
@@ -260,6 +276,7 @@ else if (growth_function>=4) then
     
     !Store previous solution
     g_coeff1_l_prev = g_coeff1_r
+    Loss_Sw_prev = Loss_Sw
 
     ! right growth rate
     g_termr = g_coeff1_r*(v(index)**g_coeff2)

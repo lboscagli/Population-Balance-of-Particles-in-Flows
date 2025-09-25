@@ -48,7 +48,7 @@ double precision :: amb_temp, amb_p, amb_rho, G_mixing_line, part_den_l, alpha_i
 double precision :: jet_cl_model, diameter_jet, u_0j, T_0j, current_temp, current_rho, p_water, current_XH2O
 double precision :: tau_g
 double precision :: kappa !hygroscopicity
-real :: Loss_Sw !Saturation consumption
+real :: Loss_Sw,Loss_Sw_prev !Saturation consumption
 real :: Production_Sw !Saturation production
 real :: Smw, Smw_prev !Saturation ratio along the mixingline with no particles
 real(kind=8) :: S_vc !Critical saturation ratio for aerosol droplet with specific dry radius and hygroscopicity
@@ -68,7 +68,7 @@ logical :: inps_distribution_logical !Flag to determine whether or not the initi
 double precision, allocatable, dimension(:) :: kappa_bins, part_rho_bins, v0_bins, ni_new, ni_type !hygroscopicity, mass density nuclei volume size and number density 
 logical, allocatable, dimension(:) :: nuclei_logical, activation_logical_bins !array with logical variable to define if the bin is a nuclei or not
 double precision :: v0_min, v0_max
-real(kind=8), allocatable, dimension(:) :: S_vc_bins
+real(kind=8), allocatable, dimension(:) :: S_vc_bins, Loss_Sw_bins
 
 integer m,grid_type
 integer i_gm,solver_pbe
@@ -371,9 +371,9 @@ subroutine pbe_ice_update(time, dt, jet_temp, jet_rho)
   
     implicit none
 
-    double precision, intent(in)                  :: time,dt
+    double precision, intent(in)                  :: time, dt
     double precision, intent(out)                  :: jet_temp, jet_rho, jet_XH2O
-    double precision :: a_T, b_T, a_XH2O, b_XH2O, c_XH2O, d_XH2O
+    double precision :: a_T, b_T, a_XH2O, b_XH2O, c_XH2O, d_XH2O, s_T, s_H2O, tau_0_T, tau_0_XH2O
 
     double precision :: gascon=8314.3
     double precision :: M_air = 28.96
@@ -382,20 +382,27 @@ subroutine pbe_ice_update(time, dt, jet_temp, jet_rho)
       
     ! Read ICE input data
     
-    !Parameters from fitting of LES data - this are case dependent and not general
-    a_T = 0.00128922
-    b_T = 0.77394931
-    a_XH2O = 1.15187008e-03
-    b_XH2O = 7.22690952e-01
-    c_XH2O = 2.37237876e-02
-    d_XH2O = -1.14574449e-04
+    !Smoothing  functions
+    tau_0_T = 0.07252273091639387 !Mixing timescale for temperature
+    s_T = 1.0 / (1.0 + EXP(-(time - tau_0_T)*100.0))   !Smoothing  function for temperature
+
+    tau_0_XH2O = 0.07291199788252307 !Mixing timescale for water vapor molar fraction
+    s_H2O = 1.0 / (1.0 + EXP(-(time - tau_0_XH2O)*100.0))  !Smoothing  function for water vapor molar fraction
+    
+    !Parameters from fitting of LES data - this are case dependent and not general - computed from python script PLOT_CENTERLINE_PROFILES.py
+    a_T = 10181.164588078567 !0.00128922
+    b_T = 132525.42292456215 !0.77394931
+    a_XH2O = 3909.5095008702565 !1.15187008e-03
+    b_XH2O = 52701.46574744755 !7.22690952e-01
+    c_XH2O = 0.05924534425139427 !2.37237876e-02
+    d_XH2O = 0.006689109543539442 !-1.14574449e-04
     
     !temperature
-    jet_temp = amb_temp + (T_0j - amb_temp)*(a_T/(time+a_T))**b_T 
-    
-    !Water vapor molar fraction
-    jet_XH2O = d_XH2O + (c_XH2O - d_XH2O)*(a_XH2O/(time+a_XH2O))**b_XH2O
-    
+    jet_temp = T_0j*(1 - s_T) + s_T*(amb_temp + (T_0j - amb_temp)*(a_T/(time+a_T))**b_T)
+
+    !Water vapor molar fraction   
+    jet_XH2O = c_XH2O*(1 - s_H2O) + s_H2O*(d_XH2O + (c_XH2O - d_XH2O)*(a_XH2O/(time+a_XH2O))**b_XH2O)
+
     !Water vapor partial pressure
     p_water = amb_p*jet_XH2O
 
@@ -407,20 +414,24 @@ subroutine pbe_ice_update(time, dt, jet_temp, jet_rho)
     !Saturation ratio and Water vapor partial pressure along the mixing line
     Smw = p_water / p_sat_liq
 
-    if (consumption_logical) then
-      if (step_update .eq. 0) then
-        p_water = Smw*p_sat_liq
-      else
-        p_water = Smw_time_series(step_update)*p_sat_liq
-        Smw = p_water/p_sat_liq
-        Production_Sw = (Smw - Smw_prev)/dt 
-      endif     
+    !if (consumption_logical) then
+    !if (step_update > 0) then
+    !  Production_Sw = (Smw - Smw_prev)/dt
+    !  p_water = Smw_time_series(step_update)*p_sat_liq
+    !  Smw = p_water/p_sat_liq 
+    !endif     
+    
+    if (step_update > 0) then
+      Production_Sw = (Smw - Smw_prev)/dt 
+      p_water = Smw_time_series(step_update)*p_sat_liq   
     endif
+
+    !endif
     Smw_prev = Smw
     ! Jet moist air density
-    jet_rho = amb_p/(gascon/M_air*(jet_temp*(1.0_8+0.61_8*((p_water/p_sat_liq)*0.622_8*((611.2_8*exp(17.67_8*(jet_temp-273.15)/((jet_temp-273.15)+243.5_8)))/amb_p)))))
+    jet_rho = amb_p/(gascon/M_air*(jet_temp*(1.0_8+0.61_8*((p_water/p_sat_liq)*0.622_8*((611.2_8*exp(17.67_8*(jet_temp-273.15)/((jet_temp-273.15)+243.5_8)))/amb_p))))) 
 
-  
+
   end subroutine pbe_ice_update_LES
   
   !**********************************************************************************************
@@ -965,7 +976,7 @@ else
 endif
 do i=1,m
   write(99,1001) v_m(i),(6.D0/3.14159*v_m(i))**(1.D0/3.D0),nitemp(i), &
-  & nitemp(i)*dv(i)/moment(0),v_m(i)*nitemp(i),v_m(i)*nitemp(i)*dv(i)/moment(1),dv(i),ni_type(i)
+  & nitemp(i)*dv(i)/moment(0),v_m(i)*nitemp(i),v_m(i)*nitemp(i)*dv(i)/moment(1),dv(i),ni_type(i),Loss_Sw_bins(i)
 end do
 close(99)
 if (i_writesp==1) then
@@ -977,7 +988,7 @@ if (i_writesp==1) then
   end do
 end if
 
-1001 format(8E20.10)
+1001 format(9E20.10)
 1002 format(2E20.10)
 
 end subroutine pbe_output

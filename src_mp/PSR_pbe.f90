@@ -12,7 +12,7 @@ subroutine psr_pbe()
   use pbe_mod, only: growth_function, jet_cl_model, amb_temp, amb_rho, current_temp, current_rho, p_water, tau_g, current_XH2O, dv, m, v, v_m
   use pbe_mod, only: Loss_Sw, Production_Sw, Smw, p_sat_liq, p_sat_ice, amb_p, G_mixing_line, Smw_time_series, step_update, activation_logical, consumption_logical
   use pbe_mod, only: plume_cooling_rate, T_time_series
-  use pbe_mod, only: kappa_bins, part_rho_bins, v0_bins, ni_new, inps_distribution_logical, v, nuclei_logical, activation_logical_bins, S_vc_bins, ni_type
+  use pbe_mod, only: kappa_bins, part_rho_bins, v0_bins, ni_new, inps_distribution_logical, v, nuclei_logical, activation_logical_bins, S_vc_bins, ni_type, Loss_Sw_bins
   use ice_microphys_mod
   
   implicit none
@@ -64,6 +64,7 @@ subroutine psr_pbe()
      current_rho = amb_rho
      !Open output file
      open(999,file='pbe/ice_jet_temperature.out')
+     allocate(Loss_Sw_bins(n_pbe_grid))
   endif
 
   if (inps_distribution_logical) then 
@@ -109,13 +110,12 @@ subroutine psr_pbe()
       call pbe_ice_update(current_time, dt, current_temp, current_rho)
     elseif (jet_cl_model==2) then
       write(*,*) 'Using LES data...'
-      call pbe_ice_update_LES(current_time, current_temp, current_rho, current_XH2O)
+      call pbe_ice_update_LES(current_time, dt, current_temp, current_rho, current_XH2O)
     endif
   endif
   
   !----------------------------------------------------------------------------------------------
 
- 
 
   ! Integration
   
@@ -206,7 +206,7 @@ subroutine psr_pbe()
       if (jet_cl_model==1) then
         call pbe_ice_update(current_time, dt, current_temp, current_rho)
       elseif (jet_cl_model==2) then
-        call pbe_ice_update_LES(current_time, current_temp, current_rho, current_XH2O)
+        call pbe_ice_update_LES(current_time, dt, current_temp, current_rho, current_XH2O)
       endif
   
       !call saturation_ratio(Smw_time_series, k, dt, Smw, Loss_Sw)
