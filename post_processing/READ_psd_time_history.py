@@ -37,7 +37,7 @@ path = '../pbe/'
 
 case_name = r''#'$\rho_p [kg/m^3]$'
 
-analysis_name = 'EXAMPLE'#'15_dd20nm_k0p005'#'N04p5e10_K96'#'_no_consumption'#'LES_XH2O_55bins_geometric_buthanol'#'TEST'#
+analysis_name = 'EXAMPLE_Soot_poor_v2'#'EXAMPLE_Soot_poor_v2'#'EXAMPLE_Soot_only'#'15_dd20nm_k0p005'#'N04p5e10_K96'#'_no_consumption'#'LES_XH2O_55bins_geometric_buthanol'#'TEST'#
 
 NUMBER_DENSITY_BAR_PLOT = False
 NUMBER_DENSITY_SCATTER_PLOT = False
@@ -113,12 +113,16 @@ number_density = []
 Sum_nv = []
 Mean_d_m = []
 particle_type = []
+saturation_loss = []
+mass_loss = []
 for t_filename in timestep_files:
     v_m_i = []
     d_m_i = []
     dv_i = []
     particle_type_i = []
     number_density_i = []
+    saturation_loss_i = []
+    mass_loss_i = []
     with open(path+t_filename) as f:
         for line in f.readlines():
             v_m_i.append(float(line.split()[0]))
@@ -126,7 +130,10 @@ for t_filename in timestep_files:
             number_density_i.append(float(line.split()[2]))
             dv_i.append(float(line.split()[6]))
             particle_type_i.append(float(line.split()[7]))
-        
+            saturation_loss_i.append(float(line.split()[8]))
+            mass_loss_i.append(float(line.split()[9]))
+    
+    mask_inactive = np.array(particle_type_i)>0 
     v_m.append(np.array(v_m_i))
     d_m.append(np.array(d_m_i))
     number_density.append(np.array(number_density_i)*np.array(dv_i))
@@ -135,8 +142,10 @@ for t_filename in timestep_files:
     mean_d_m.append(d_m_i[idx_mean])
     peak_d_m.append(d_m_i[idx_peak])
     Sum_nv.append(np.sum(np.array(number_density_i)*np.array(dv_i)))
-    Mean_d_m.append(np.sum(np.array(d_m_i)*np.array(number_density_i)*np.array(dv_i))/np.sum(np.array(number_density_i)*np.array(dv_i)))
+    Mean_d_m.append(((np.sum(np.array(v_m_i)[mask_inactive]*np.array(number_density_i)[mask_inactive]*np.array(dv_i)[mask_inactive])/np.sum(np.array(number_density_i)[mask_inactive]*np.array(dv_i)[mask_inactive]))*3/4/np.pi)**(1/3))
     particle_type.append(np.array(particle_type_i))
+    saturation_loss.append(np.array(saturation_loss_i))
+    mass_loss.append(np.array(mass_loss_i))
 
 
 # dic = {'time':time[::N_step_Save],
@@ -169,7 +178,7 @@ ax.tick_params(labelsize=18)
 ax.set_xlabel(r'$d_m [nm]$',fontsize=18)
 ax.set_ylabel(r'$n_v [\#/m^3]$',fontsize=18)
 
-plt.xlim(min([min(d_m_i) for d_m_i in d_m])*1E9,max([max(d_m_i) for d_m_i in d_m])*1E9)
+plt.xlim(min([min(d_m_i) for d_m_i in d_m])*1E9,10000)#max([max(d_m_i) for d_m_i in d_m])*1E9)
 plt.ylim(1,max([max(nv) for nv in number_density]))
 plt.title('Particle number density\n per cell unit volume', fontsize=14)
 
@@ -203,6 +212,7 @@ fig,ax=plt.subplots()
 plt.plot(Temperature, p_water_sat_liq, 'k',ls='solid',label=r'$P_{v,sat}^{liq}$') 
 plt.plot(Temperature, p_water_sat_ice, 'r',ls='dashed',label=r'$P_{v,sat}^{ice}$')   
 plt.plot(Temperature[1:], P_v_consumed[1:], 'c',ls='-.',label=r'$\textnormal{mixing line}$')
+#plt.plot(Temperature[1:], Smw_consumed[1:]*p_water_sat_liq[1:], 'c',ls='-.',label=r'$\textnormal{mixing line}$')
 #plt.plot(Temperature[1:], P_v[1:], 'b--',ls='-.')#,label=r'$\textnormal{mixing line}$')  
 
 ax.tick_params(labelsize=18)
@@ -299,7 +309,7 @@ ax.set_xlabel(r'$t [s]$',fontsize=18)
 ax.set_ylabel(r'$0^{th}-moment$',fontsize=18)
 ax1.set_ylabel(r'$S_{mw}$',fontsize=18)
 ax.set_xlim(0,max(time))
-ax.set_ylim(min(moment_0)-0.12*min(moment_0),max(moment_0)+0.12*max(moment_0))
+#ax.set_ylim(min(moment_0)-0.12*min(moment_0),max(moment_0)+0.12*max(moment_0))
 ax1.plot(time,np.ones(len(time)),'r-.',label=r'$S_{v,liq}$')
 ax1.set_ylim(0,1.5)
 ax.tick_params(labelsize=18)
@@ -472,7 +482,8 @@ if SATURATION_ANIMATED_PLOTS:
         ax1.plot(time[int(case) - 1],Smw_consumed[int(case) - 1],'rv',fillstyle='none',markersize=10)#,label=r'$S_{mw}$')
         
         if max(activation_binary)>1.0:
-            ax1.plot(time,max(Smw_activated)*np.ones(len(time)),'r',ls='dashed',label=r'$S_{v,c}-vPM$')
+            if max(Smw_activated) != min(Smw_activated):
+                ax1.plot(time,max(Smw_activated)*np.ones(len(time)),'r',ls='dashed',label=r'$S_{v,c}-vPM$')
             ax1.plot(time,min(Smw_activated)*np.ones(len(time)),'r',ls='dotted',label=r'$S_{v,c}-nvPM$')
         else:
             ax1.plot(time,Smw_activated*np.ones(len(time)),'r',ls='dotted',label=r'$S_{v,c}$')
@@ -498,3 +509,97 @@ if SATURATION_ANIMATED_PLOTS:
         
         plt.savefig(plot_hist_dir + '/Supersaturation_and_number_density_it-' + str(int(case)) + '.png',dpi=600)
         plt.close()
+        
+
+
+##Plot saturation loss as a function of temperature for various particle sizes
+saturation_loss = np.array(saturation_loss)
+
+#Filter out zero arrays (no growth)
+saturation_loss_filtered = []
+particle_diameter_filtered = []
+for i in range(0,saturation_loss.shape[1]):
+    if any(saturation_loss[:,i]>0):
+        saturation_loss_filtered.append(saturation_loss[:,i])
+        particle_diameter_filtered.append(d_m_i[i])
+
+saturation_loss_filtered = np.array(saturation_loss_filtered).T
+particle_diameter_filtered = np.array(particle_diameter_filtered)
+
+#Reduce array size for plotting
+bins_interval = 1
+saturation_loss_selected = saturation_loss_filtered[:,::bins_interval]
+particle_diameter_selected = particle_diameter_filtered[::bins_interval]
+
+colors_bin = cm.seismic(np.linspace(0, 1, num=saturation_loss_selected.shape[1]))
+Temperature_plot = [Temperature[int(i)-1] for i in Sampled_iterations]        
+
+
+fig,ax=plt.subplots()
+for i,dm in enumerate(particle_diameter_selected):
+    if i==0 or i==len(particle_diameter_selected)-1:
+        plt.semilogy(Temperature_plot,saturation_loss_selected[:,i],linestyle='solid',color=colors_bin[i],fillstyle='none',label="${:.1f}$".format(dm*1e9))    
+    else:
+        plt.semilogy(Temperature_plot,saturation_loss_selected[:,i],linestyle='solid',color=colors_bin[i],fillstyle='none')    
+
+ax.tick_params(labelsize=18)
+ax.set_xlabel(r'$T \; [K]$',fontsize=18)
+ax.set_ylabel(r'$\mathcal{L}_{w,i} \; [-]$',fontsize=18)
+
+#plt.xlim(min([min(d_m_i) for d_m_i in d_m])*1E9,10000)#max([max(d_m_i) for d_m_i in d_m])*1E9)
+plt.xlim(220,240)
+#plt.title('Particle number density\n per cell unit volume', fontsize=14)
+
+plt.legend(loc='best',title=r'$d_m [nm]$',fontsize=14,title_fontsize=14)
+
+plt.tight_layout()
+
+plt.savefig(plot_dir+'/saturation_loss.png',dpi=600)
+
+###############################################################################
+##Plot mass loss as a function of temperature for various particle sizes
+mass_loss = np.array(mass_loss)
+
+#Filter out zero arrays (no growth)
+mass_loss_filtered = []
+particle_diameter_filtered = []
+for i in range(0,mass_loss.shape[1]):
+    if any(mass_loss[:,i]>0):
+        mass_loss_filtered.append(mass_loss[:,i])
+        particle_diameter_filtered.append(d_m_i[i])
+
+mass_loss_filtered = np.array(mass_loss_filtered).T
+particle_diameter_filtered = np.array(particle_diameter_filtered)
+
+#Reduce array size for plotting
+bins_interval = 1
+mass_loss_selected = mass_loss_filtered[:,::bins_interval]
+particle_diameter_selected = particle_diameter_filtered[::bins_interval]
+
+colors_bin = cm.seismic(np.linspace(0, 1, num=mass_loss_selected.shape[1]))
+Temperature_plot = [Temperature[int(i)-1] for i in Sampled_iterations]        
+
+
+fig,ax=plt.subplots()
+for i,dm in enumerate(particle_diameter_selected):
+    if i==0 or i==len(particle_diameter_selected)-1:
+        plt.semilogy(Temperature_plot,mass_loss_selected[:,i],linestyle='solid',color=colors_bin[i],fillstyle='none',label="${:.1f}$".format(dm*1e9))    
+    else:
+        plt.semilogy(Temperature_plot,mass_loss_selected[:,i],linestyle='solid',color=colors_bin[i],fillstyle='none')    
+
+ax.tick_params(labelsize=18)
+ax.set_xlabel(r'$T \; [K]$',fontsize=18)
+ax.set_ylabel(r'$|\overline{\dot{\omega}_{V,i}}| \; [kg/(m^3s)]$',fontsize=18)
+
+#plt.xlim(min([min(d_m_i) for d_m_i in d_m])*1E9,10000)#max([max(d_m_i) for d_m_i in d_m])*1E9)
+plt.xlim(220,240)
+#plt.title('Particle number density\n per cell unit volume', fontsize=14)
+
+plt.legend(loc='best',title=r'$d_m [nm]$',fontsize=14,title_fontsize=14)
+
+plt.tight_layout()
+
+plt.savefig(plot_dir+'/mass_loss.png',dpi=600)
+
+    
+    

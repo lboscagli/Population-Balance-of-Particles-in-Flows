@@ -68,7 +68,7 @@ logical :: inps_distribution_logical !Flag to determine whether or not the initi
 double precision, allocatable, dimension(:) :: kappa_bins, part_rho_bins, v0_bins, ni_new, ni_type !hygroscopicity, mass density nuclei volume size and number density 
 logical, allocatable, dimension(:) :: nuclei_logical, activation_logical_bins !array with logical variable to define if the bin is a nuclei or not
 double precision :: v0_min, v0_max
-real(kind=8), allocatable, dimension(:) :: S_vc_bins, Loss_Sw_bins
+real(kind=8), allocatable, dimension(:) :: S_vc_bins, Loss_Sw_bins, m_source_bins
 
 integer m,grid_type
 integer i_gm,solver_pbe
@@ -976,7 +976,7 @@ else
 endif
 do i=1,m
   write(99,1001) v_m(i),(6.D0/3.14159*v_m(i))**(1.D0/3.D0),nitemp(i), &
-  & nitemp(i)*dv(i)/moment(0),v_m(i)*nitemp(i),v_m(i)*nitemp(i)*dv(i)/moment(1),dv(i),ni_type(i),Loss_Sw_bins(i)
+  & nitemp(i)*dv(i)/moment(0),v_m(i)*nitemp(i),v_m(i)*nitemp(i)*dv(i)/moment(1),dv(i),ni_type(i),Loss_Sw_bins(i),m_source_bins(i)
 end do
 close(99)
 if (i_writesp==1) then
@@ -988,7 +988,7 @@ if (i_writesp==1) then
   end do
 end if
 
-1001 format(9E20.10)
+1001 format(10E20.10)
 1002 format(2E20.10)
 
 end subroutine pbe_output

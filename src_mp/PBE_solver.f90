@@ -156,6 +156,7 @@ tau_g_den = 0. ! denominator of growth timescale
 Loss_Sw = 0.
 g_coeff1_l_prev = 0.
 Loss_Sw_bins = 0.
+m_source_bins = 0.
 
 !Nucleation
 if (max_nuc>0) then

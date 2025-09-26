@@ -130,7 +130,7 @@ contains
   
     use pbe_mod, only :v_m, m, dv, v, v0_max, v0_min !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
     use pbe_mod, only :current_temp, amb_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
-    use pbe_mod, only :Smw_time_series, step_update, r_vc, S_vc, inps_type_no, activation_logical_bins, part_rho_bins, Loss_Sw_bins
+    use pbe_mod, only :Smw_time_series, step_update, r_vc, S_vc, inps_type_no, activation_logical_bins, part_rho_bins, Loss_Sw_bins, m_source_bins
     use thermo
 
     implicit none
@@ -243,9 +243,11 @@ contains
        g_coeff1_r = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
        Loss_Sw = Loss_Sw + (amb_p/p_water_sat_liq/epsilon_fluid) * pi * part_den / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
        Loss_Sw_bins(index) = (amb_p/p_water_sat_liq/epsilon_fluid) * pi * part_den / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
+       m_source_bins(index) = dmdt * ni(index) * dv(index)
     else
        g_coeff1_r = 0.0
        Loss_Sw_bins(index) = 0.0
+       m_source_bins(index) = 0.0
     endif
     
 
@@ -337,7 +339,7 @@ contains
   
     use pbe_mod, only :v_m, m, dv, v, v0_min, v0_max !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
     use pbe_mod, only :current_temp, amb_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
-    use pbe_mod, only :Smw_time_series, step_update, r_vc, S_vc, Loss_Sw_bins, inps_type_no
+    use pbe_mod, only :Smw_time_series, step_update, r_vc, S_vc, Loss_Sw_bins, inps_type_no, m_source_bins
     use thermo
 
     implicit none
@@ -418,9 +420,11 @@ contains
        g_coeff1_r = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
        Loss_Sw = Loss_Sw + (amb_p/p_water_sat_liq/epsilon_fluid) * pi * part_den / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
        Loss_Sw_bins(index) = (amb_p/p_water_sat_liq/epsilon_fluid) * pi * part_den / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
+       m_source_bins(index) = dmdt * ni(index) * dv(index)
     else
        g_coeff1_r = 0.0
        Loss_Sw_bins(index) = 0.0
+       m_source_bins(index) = 0.0
     endif
 
     !Left side
@@ -495,7 +499,7 @@ contains
     !use chemistry, only : nsp,fsc,temp,sumn,names,wm
     !use euler_part_interface
     use pbe_mod, only :v_m, m, dv, v !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
-    use pbe_mod, only :current_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, Loss_Sw, current_rho, Loss_Sw_bins  
+    use pbe_mod, only :current_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, Loss_Sw, current_rho, Loss_Sw_bins, m_source_bins 
     use thermo
 
     implicit none
@@ -511,7 +515,7 @@ contains
     double precision :: r_part,r_nuc,den_ice
     double precision :: dif_water,lambda_water
     double precision :: coll_factor,Kn!,alpha_ice
-    double precision :: fornow,drdt
+    double precision :: fornow,drdt,dmdt
     double precision :: part_den !, part_den_l, part_den_r
     real,parameter :: pi = 3.141592653589793E+00
     double precision :: gascon=8314.3
@@ -581,6 +585,7 @@ contains
                                     
     ! Change in particle radius over time
     drdt = fornow / (part_den * r_part) 
+    dmdt = 4.0 * pi * r_part * fornow
   
     ! Compute coefficients needed for growth and supersaturation consumption
     g_coeff2 = 2.0 / 3.0 
@@ -588,9 +593,11 @@ contains
       g_coeff1_r = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
       Loss_Sw = Loss_Sw + (amb_p/p_water_sat_liq/epsilon_fluid) * pi * part_den / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
       Loss_Sw_bins(index) = (amb_p/p_water_sat_liq/epsilon_fluid) * pi * part_den / current_rho * (ni(index)*dv(index) * r_part**2 * drdt)
+      m_source_bins(index) = dmdt * ni(index) * dv(index)
     else
        g_coeff1_r = 0.0
        Loss_Sw_bins(index) = 0.0
+       m_source_bins(index) = 0.0
     endif    
 
     !Left side
