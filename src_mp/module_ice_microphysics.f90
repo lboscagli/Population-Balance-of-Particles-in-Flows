@@ -173,36 +173,39 @@ contains
                !             (r_part**3.0 - r_nuc**3.0)) / r_part**3.0  ! particle density
 
     !Compute equilibrium saturation ratio over the particle
-    !if ((r_part <= r_vc) .and. (r_part_m .ge. r_nuc)) then! .and. (v_m(index) <= v0_max)) then
-    !  S_v = S_vc
-    !  !write(*,*) 'S_v',S_vc
-    !  !write(*,*) 'index',index
-    !  !part_den = part_rho_bins(index)
-    !else  
-    !  if ((v_m(index) > v0_max) .and. (active .ge. 2)) then !if ((v_m(index) .ge. v0_max) .and. (inps_type_no .ge. 2)) then
-    !    !S_v = Seq(r_part, 0.d0, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
-    !    S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
-    !  else
-    !    S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
-    !    !part_den = part_den_l
-    !  endif    
-    !  S_v = S_v + 1.0     
-    !endif 
-    !S_v = Seq_water(r_part, current_temp)
-    !S_v = S_v + 1.0
-    
-    !Compute equilibrium saturation ratio over the particle
-    if ((r_part_m .eq. r_nuc)) then
+    if ((r_part_m .eq. r_nuc) .and. (v_m(index) .le. v0_max)) then
       S_v = S_vc
-    else  
-      if ((v(index) > v0_max) .and. (inps_type_no .ge. 2)) then
-        !S_v = Seq(r_part, 0.d0, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
-        S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+    else 
+      if ((v_m(index) > v0_max) .and. (inps_type_no .ge. 2)) then
+      !  !S_v = Seq(r_part, 0.d0, temp(ijk), kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+        S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
       else
-        S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
-      endif    
+        S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom  
+      !  !this%part_den(index) = this%part_den_l!this%part_rho_bins(index)   
+      endif
       S_v = S_v + 1.0     
-    endif  
+    endif
+
+    if (r_part_m .eq. r_nuc) then
+      if ((inps_type_no .ge. 2) .and. (v_m(index) .le. v0_max)) then
+        part_den = part_den_l
+      elseif (inps_type_no < 2) then
+        part_den = part_den_l!this%part_rho_bins(index)
+      endif
+    endif    
+    
+    ! !Compute equilibrium saturation ratio over the particle
+    ! if ((r_part_m .eq. r_nuc)) then
+    !   S_v = S_vc
+    ! else  
+    !   if ((v(index) > v0_max) .and. (inps_type_no .ge. 2)) then
+    !     !S_v = Seq(r_part, 0.d0, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+    !     S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+    !   else
+    !     S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
+    !   endif    
+    !   S_v = S_v + 1.0     
+    ! endif  
 
     ! Saturation presure over liquid
     call p_sat_liq_murphy_koop(p_water_sat_liq)
@@ -231,9 +234,9 @@ contains
     !write(*,*) 'Condensational growth'
     !write(*,*) 'drdt',drdt  
 
-    if ((r_part < r_nuc) .and. (active < 2)) then
-      drdt = -1.0
-    endif    
+    !if ((r_part < r_nuc) .and. (active < 2)) then
+    !  drdt = -1.0
+    !endif    
 
     g_coeff2 = 2.0 / 3.0 
     if (drdt .ge. 0) then
@@ -252,40 +255,35 @@ contains
     r_part = (3.0 / (4.0 * pi) * v(index-1))**(1.0/3.0)  ! radius of spherically assumed particles computed from the volume at the middle of each bin v_m
   
     ! particle density
-    part_den = rho_w!(part_den_l * r_nuc**3.0 + rho_w * &
+    !part_den = rho_w!(part_den_l * r_nuc**3.0 + rho_w * &
                !             (r_part**3.0 - r_nuc**3.0)) / r_part**3.0  ! particle density
 
     !Compute equilibrium saturation ratio over the particle
-    !if ((r_part <= r_vc) .and. (r_part_m .ge. r_nuc)) then! .and. (v_m(index) <= v0_max)) then
-    !  S_v = S_vc
-    !  !write(*,*) 'S_v',S_vc
-    !  !write(*,*) 'index',index
-    !  !part_den = part_den_l
-    !else  
-    !  if ((v_m(index) > v0_max) .and. (active .ge. 2)) then
-    !    !S_v = Seq(r_part, 0.d0, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
-    !    S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
-    !  else
-    !    S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
-    !    !part_den = part_den_l
-    !  endif    
-    !  S_v = S_v + 1.0     
-    !endif  
-    !S_v = Seq_water(r_part, current_temp)
-    !S_v = S_v + 1.0
-
-    !Compute equilibrium saturation ratio over the particle
-    if ((r_part_m .eq. r_nuc)) then
+    if ((r_part_m .eq. r_nuc) .and. (v_m(index) .le. v0_max)) then
       S_v = S_vc
-    else  
-      if ((v(index-1) > v0_max) .and. (inps_type_no .ge. 2)) then
-        !S_v = Seq(r_part, 0.d0, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
-        S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+    else 
+      if ((v_m(index) > v0_max) .and. (inps_type_no .ge. 2)) then
+        !S_v = Seq(r_part, 0.d0, temp(ijk), kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+        S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
       else
-        S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom     
-      endif   
-      S_v = S_v + 1.0   
+        S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom  
+        !this%part_den(index) = this%part_den_l!this%part_rho_bins(index)   
+      endif
+      S_v = S_v + 1.0     
     endif
+
+    ! !Compute equilibrium saturation ratio over the particle
+    ! if ((r_part_m .eq. r_nuc)) then
+    !   S_v = S_vc
+    ! else  
+    !   if ((v(index-1) > v0_max) .and. (inps_type_no .ge. 2)) then
+    !     !S_v = Seq(r_part, 0.d0, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+    !     S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom
+    !   else
+    !     S_v = Seq(r_part, r_nuc, current_temp, kappa) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom     
+    !   endif   
+    !   S_v = S_v + 1.0   
+    ! endif
 
 
     !Mass (M) diffusion term
@@ -311,9 +309,9 @@ contains
     !write(*,*) 'Condensational growth'
     !write(*,*) 'drdt',drdt
 
-    if ((r_part < r_nuc) .and. (active < 2)) then
-      drdt = -1.0
-    endif
+    !if ((r_part < r_nuc) .and. (active < 2)) then
+    !  drdt = -1.0
+    !endif
 
     if ((drdt .ge. 0)) then
        g_coeff1_l = 4.0 * pi * (3.0 / (4.0 * pi))**g_coeff2 * drdt ! Equivalent to  3 * (4/3 pi)**(1/3) * dr/dt
@@ -339,7 +337,7 @@ contains
   
     use pbe_mod, only :v_m, m, dv, v, v0_min, v0_max !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
     use pbe_mod, only :current_temp, amb_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
-    use pbe_mod, only :Smw_time_series, step_update, r_vc, S_vc, Loss_Sw_bins
+    use pbe_mod, only :Smw_time_series, step_update, r_vc, S_vc, Loss_Sw_bins, inps_type_no
     use thermo
 
     implicit none
@@ -374,7 +372,7 @@ contains
     den_ice = 917.0  
     ! particle density
     part_den = den_ice!(part_den_l * r_nuc**3.0 + den_ice * &
-               !             (r_part**3.0 - r_nuc**3.0)) / r_part**3.0  ! particle density
+               !             (r_part**3.0 - r_nuc**3.0)) / r_part**3.0  ! particle density      
 
     !Compute equilibrium saturation ratio over the particle
     !if (r_part_m .eq. r_nuc) then
@@ -431,7 +429,7 @@ contains
     r_part = (3.0 / (4.0 * pi) * v(index-1))**(1.0/3.0)  ! radius of spherically assumed particles computed from the volume at the middle of each bin v_m
 
     ! particle density
-    part_den = den_ice!(part_den_l * r_nuc**3.0 + den_ice * &
+    !part_den = den_ice!(part_den_l * r_nuc**3.0 + den_ice * &
                !             (r_part**3.0 - r_nuc**3.0)) / r_part**3.0  ! particle density
 
     !Compute equilibrium saturation ratio over the particle
@@ -653,7 +651,7 @@ contains
   !**********************************************************************************************
 
     use pbe_mod, only :v0, v_m, m, dv, v !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
-    use pbe_mod, only :current_temp, plume_cooling_rate, inps_type_no, activation_logical_bins, v0_bins
+    use pbe_mod, only :current_temp, plume_cooling_rate, inps_type_no, activation_logical_bins, v0_bins, v0_min
     use thermo
 
     implicit none
@@ -681,10 +679,8 @@ contains
     !LWV = v_m(index) !- v0 : to deal with multiple particles we make an assumption here as we use only the wet diameter
 
     !Compute liquid water volume (LWV)
-    if ((active < 2) .or. (v_m(index) .eq. minval(v0_bins(:)))) then !(v_m(index) < v0_max) then
+    if ((active < 2) .or. (v_m(index) .eq. v0_min)) then !(v_m(index) < v0_max) then
       LWV = v_m(index) - v0_act
-    !elseif ((v_m(index) .eq. v0_max) .and. (active < 2)) then
-    !  LWV = v_m(index) - v0_act
     else
       LWV = v_m(index) ! : to deal with multiple particles we make an assumption here as we use only the wet diameter
     endif

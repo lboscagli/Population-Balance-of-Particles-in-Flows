@@ -253,7 +253,7 @@ else if (growth_function>=4) then
           g_coeff1_l = g_coeff1_l_prev
           !Loss_Sw = Loss_Sw_prev
         endif
-      elseif ((p_water .ge. p_sat_ice)) then 
+      elseif ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz)) then 
         !write(*,*) 'Depositional growth'
         call pbe_depositional_growth_ice_Bier(index,ni,v0_act, g_coeff1_l,g_coeff1_r,g_coeff2) 
         if (ni(index) > 0) then
