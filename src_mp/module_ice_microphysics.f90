@@ -155,7 +155,7 @@ contains
     
     active = 0
     do j=1,m
-      if (activation_logical_bins(j)) then
+      if (.not. activation_logical_bins(j)) then
         active = active + 1
       endif
     enddo
@@ -173,7 +173,7 @@ contains
                !             (r_part**3.0 - r_nuc**3.0)) / r_part**3.0  ! particle density
 
     !Compute equilibrium saturation ratio over the particle
-    if ((r_part_m .eq. r_nuc) .and. (v_m(index) .le. v0_max)) then
+    if (((r_part_m .eq. r_nuc) .and. (v_m(index) < v0_max)) .or. ((r_part_m .eq. r_nuc) .and. (inps_type_no .eq. 1))) then
       S_v = S_vc
     else 
       if ((v_m(index) > v0_max) .and. (inps_type_no .ge. 2)) then
@@ -234,7 +234,7 @@ contains
     !write(*,*) 'Condensational growth'
     !write(*,*) 'drdt',drdt  
 
-    !if ((r_part < r_nuc) .and. (active < 2)) then
+    !if ((r_part < r_nuc) .and. (active > 1)) then
     !  drdt = -1.0
     !endif    
 
@@ -261,7 +261,7 @@ contains
                !             (r_part**3.0 - r_nuc**3.0)) / r_part**3.0  ! particle density
 
     !Compute equilibrium saturation ratio over the particle
-    if ((r_part_m .eq. r_nuc) .and. (v_m(index) .le. v0_max)) then
+    if (((r_part_m .eq. r_nuc) .and. (v_m(index) < v0_max)) .or. ((r_part_m .eq. r_nuc) .and. (inps_type_no .eq. 1))) then
       S_v = S_vc
     else 
       if ((v_m(index) > v0_max) .and. (inps_type_no .ge. 2)) then
@@ -311,7 +311,7 @@ contains
     !write(*,*) 'Condensational growth'
     !write(*,*) 'drdt',drdt
 
-    !if ((r_part < r_nuc) .and. (active < 2)) then
+    !if ((r_part < r_nuc) .and. (active > 1)) then
     !  drdt = -1.0
     !endif
 
@@ -677,7 +677,7 @@ contains
     
     active = 0
     do j=1,m
-      if (activation_logical_bins(j)) then
+      if (.not. activation_logical_bins(j)) then
         active = active + 1
       endif
     enddo   
@@ -686,7 +686,7 @@ contains
     !LWV = v_m(index) !- v0 : to deal with multiple particles we make an assumption here as we use only the wet diameter
 
     !Compute liquid water volume (LWV)
-    if ((active < 2) .or. (v_m(index) .eq. v0_min)) then !(v_m(index) < v0_max) then
+    if ((active > 1) .or. (v_m(index) .eq. v0_min)) then !(v_m(index) < v0_max) then
       LWV = v_m(index) - v0_act
     else
       LWV = v_m(index) ! : to deal with multiple particles we make an assumption here as we use only the wet diameter
