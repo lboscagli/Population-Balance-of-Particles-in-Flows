@@ -723,7 +723,7 @@ contains
 
     !Compute liquid water volume (LWV)
     if ((active > 1) .or. (v_m(index) .eq. v0_min)) then !(v_m(index) < v0_max) then
-      LWV = v_m(index) - (4.0*pi)/3.0 * (r_vc**3)!v0_act
+      LWV = v_m(index) - (4.0*pi)/3.0 * r_vc**3 !v0_act
     else
       LWV = v_m(index) ! : to deal with multiple particles we make an assumption here as we use only the wet diameter
     endif

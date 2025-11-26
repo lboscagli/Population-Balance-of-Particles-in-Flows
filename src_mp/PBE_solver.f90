@@ -225,8 +225,9 @@ if (growth_function>0) then
       ! write(*,*) 'Gdv_max',Gdv_max
       ! write(*,*) 'courant_max',G_m/dv(index)
     endif
-    niprime(index) = niprime(index) + growth_source 
 
+    niprime(index) = niprime(index) + growth_source 
+    
     if (ni_type(index) .eq. 1.0) then
       m_source_pbe(index) = rho_w * niprime(index) * v_m(index) * dv(index)
     elseif (ni_type(index) .eq. 2.0) then
@@ -240,7 +241,12 @@ if (growth_function>0) then
       ! endif
     endif
     !Loss_Sw_bins(index) = (amb_p/p_water_sat_liq/epsilon_fluid/amb_rho) * m_source_pbe(index)
-    Loss_Sw_bins(index) = (amb_p/p_water_sat_liq) * (Rv/Rd) * (1.0/amb_rho) * m_source_pbe(index)
+    if (m_source_pbe(index) .ge. 0) then
+      Loss_Sw_bins(index) = (amb_p/p_water_sat_liq) * (Rv/Rd) * (1.0/amb_rho) * m_source_pbe(index)
+    else
+      m_source_pbe(index) = 0.0
+      Loss_Sw_bins(index) = 0.0
+    endif
     tau_g_num = tau_g_num + 3 * ((4/3*pi)**(2/3)) * (v_m(index)*niprime(index)*dv(index))
     tau_g_den = tau_g_den + (4*pi) * (G_m * (v_m(index))**(-1/3)*niprime(index)*dv(index))
   end do
