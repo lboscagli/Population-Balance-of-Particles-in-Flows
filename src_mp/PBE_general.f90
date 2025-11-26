@@ -40,7 +40,7 @@ double precision, allocatable, dimension(:) :: nuc
 double precision v0,grid_lb,grid_rb
 double precision agg_kernel_const
 double precision break_const
-double precision g_coeff1,g_coeff2,g_coeff1_l,g_coeff1_r,g_coeff1_l_prev
+double precision g_coeff1,g_coeff2,g_coeff1_l,g_coeff1_r,g_coeff1_l_prev,gnl_prev
 double precision nuc1
 double precision N0
 
@@ -68,7 +68,9 @@ logical :: inps_distribution_logical !Flag to determine whether or not the initi
 double precision, allocatable, dimension(:) :: kappa_bins, part_rho_bins, v0_bins, ni_new, ni_type !hygroscopicity, mass density nuclei volume size and number density 
 logical, allocatable, dimension(:) :: nuclei_logical, activation_logical_bins !array with logical variable to define if the bin is a nuclei or not
 double precision :: v0_min, v0_max
-real(kind=8), allocatable, dimension(:) :: S_vc_bins, Loss_Sw_bins, m_source_bins
+real(kind=8), allocatable, dimension(:) :: S_vc_bins, Loss_Sw_bins, m_source_bins, m_source_pbe
+double precision :: moment_0_prev
+double precision :: dt_input, ratio_max
 
 integer m,grid_type
 integer i_gm,solver_pbe
@@ -316,7 +318,7 @@ subroutine pbe_ice_update(time, dt, jet_temp, jet_rho)
     x_m = r_0j * (2.0/epsilon_t)**0.5
     
     !Mixing timescale
-    tau_m = x_m / u_0j
+    tau_m = x_m / u_0j !
     
     !Jet cooling rate
     if (time.ge.tau_m) then
@@ -423,7 +425,8 @@ subroutine pbe_ice_update(time, dt, jet_temp, jet_rho)
     
     if (step_update > 0) then
       Production_Sw = (Smw - Smw_prev)/dt 
-      p_water = Smw_time_series(step_update)*p_sat_liq   
+      !p_water = Smw_time_series(step_update)*p_sat_liq 
+      !Smw = p_water/p_sat_liq   
     endif
 
     !endif
@@ -541,7 +544,10 @@ if (Nbins_tmp /= m) then
   return
 end if
 
+! Read first grid edge 
+read(iunit, *, iostat=ios) v(0)
 
+! Allocate mid grid points and other particle variables
 allocate(v0_bins(Nbins_tmp), stat=ios)
 if (ios /= 0) then
   ierr = ios
@@ -561,7 +567,8 @@ end if
 
 ! Read data lines
 do i = 1, Nbins_tmp
-  read(iunit, *, iostat=ios) v0_bins(i), part_rho_bins(i), kappa_bins(i), ni_new(i), nuclei_logical(i)
+  read(iunit, *, iostat=ios) v0_bins(i), dv(i), part_rho_bins(i), kappa_bins(i), ni_new(i), nuclei_logical(i)
+  read(iunit, *, iostat=ios) v(i)
   if (ios /= 0) then
     ierr = ios
     print *, 'Error reading data line ', i
@@ -596,36 +603,22 @@ write(*,*) 'Mean v0: ',v0
 write(*,*) 'Mean part_den_l: ',part_den_l
 
 !Interval length and mid-points
+write(*,*) 'index=0'
+write(*,*) 'v(0)',v(0)
 do i=1,m
   v_m(i) = v0_bins(i)
-end do
-do i=2,m
-  dv(i) = v_m(i)-v_m(i-1)
-end do
-dv(1) = dv(2)
-
-!Determine new bounds
-!v(0) = v_m(1)-0.5D0*dv(1)
-do i=0,m
-  !v(i) = v(i-1) + dv(i)
-  v(i) = v_m(i+1)-0.5D0*dv(i+1)
+  write(*,*) 'index',i
+  write(*,*) 'v_m',v_m(i) 
+  write(*,*) 'dv',dv(i)
+  write(*,*) 'v',v(i)
+  !Interval length
+  if (dv(i) .ne. (v(i)-v(i-1))) then
+    write(*,*) 'WARNING', abs(dv(i) - (v(i)-v(i-1)))
+  endif
 end do
 
-!Interval length
-!do i=1,m
-  !if (i.eq.1) then
-  !  dv(i) = v0_bins(i)-v(0)
-  !else
-  !  dv(i) = v0_bins(i)-v0_bins(i-1)
-  !endif
-!end do
 
-!Interval length and mid-points
 
-!Determine mid-points
-!do i=1,m
-!  v_m(i) = v(i-1)+0.5D0*dv(i)
-!end do
 
 close(iunit)
 
@@ -864,7 +857,7 @@ end subroutine inc_ratio
 
 !**********************************************************************************************
 
-subroutine pbe_moments(ni,moment,meansize)
+subroutine pbe_moments(ni,moment,meansize,particle_mass)
 
 !**********************************************************************************************
 !
@@ -877,12 +870,13 @@ subroutine pbe_moments(ni,moment,meansize)
 !**********************************************************************************************
 
 use pbe_mod
+use thermo
 
 implicit none
 
 double precision, dimension(m), intent(in)    :: ni
 double precision, dimension(0:1), intent(out) :: moment
-double precision, intent(out)                 :: meansize
+double precision, intent(out)                 :: meansize,particle_mass
 
 double precision M1_lp,lp
 
@@ -892,11 +886,30 @@ integer i
 
 moment(0) = 0.0
 moment(1) = 0.0
+particle_mass = 0.0
 
 do i=1,m
   moment(0) = moment(0) + ni(i)*dv(i)
   moment(1) = moment(1) + 0.5D0*(v(i-1)+v(i))*ni(i)*dv(i)
+  if (ni_type(i) .eq. 1.0) then
+    particle_mass = particle_mass + 0.5D0*(v(i-1)+v(i))*ni(i)*dv(i)*rho_w
+  elseif (ni_type(i) .eq. 2.0) then
+    particle_mass = particle_mass + 0.5D0*(v(i-1)+v(i))*ni(i)*dv(i)*rho_ice
+  else 
+    if (inps_distribution_logical) then
+      particle_mass = particle_mass + 0.5D0*(v(i-1)+v(i))*ni(i)*dv(i)*part_rho_bins(i)
+    else
+      particle_mass = particle_mass + 0.5D0*(v(i-1)+v(i))*ni(i)*dv(i)*part_den_l
+    endif
+  endif    
 end do
+
+if (abs(moment(0)-moment_0_prev)>1.0 .and. (step_update>0)) then
+  write(*,*) 'step',step_update
+  write(*,*) 'moment(0)',moment(0)
+  write(*,*) 'moment_0_prev',moment_0_prev
+endif
+moment_0_prev = moment(0)
 
 M1_lp = 0.D0
 do i=m-5,m
@@ -946,6 +959,7 @@ double precision :: nitemp(m),eta(m),psi(m)
 double precision, dimension(0:1) :: moment
 
 double precision meansize
+double precision particle_mass
 
 integer i
 
@@ -954,7 +968,7 @@ character(len=10) :: i_step_str
 
 !----------------------------------------------------------------------------------------------
 
-call pbe_moments(ni,moment,meansize)
+call pbe_moments(ni,moment,meansize,particle_mass)
 
 do i=1,m
   if (abs(ni(i))<1.D-16) then
@@ -996,7 +1010,6 @@ end subroutine pbe_output
 !**********************************************************************************************
 
 
-
 !**********************************************************************************************
 
 subroutine pbe_deallocate()
@@ -1013,7 +1026,7 @@ subroutine pbe_deallocate()
 
 use pbe_mod
  
-deallocate(v,dv,v_m,nuc,Smw_time_series,T_time_series)
+deallocate(v,dv,v_m,nuc,Smw_time_series,T_time_series,m_source_pbe)
 
 end subroutine pbe_deallocate
 

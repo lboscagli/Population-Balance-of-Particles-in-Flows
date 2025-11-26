@@ -11,8 +11,8 @@ subroutine psr_pbe()
   !**********************************************************************************************
   use pbe_mod, only: growth_function, jet_cl_model, amb_temp, amb_rho, current_temp, current_rho, p_water, tau_g, current_XH2O, dv, m, v, v_m
   use pbe_mod, only: Loss_Sw, Production_Sw, Smw, p_sat_liq, p_sat_ice, amb_p, G_mixing_line, Smw_time_series, step_update, activation_logical, consumption_logical
-  use pbe_mod, only: plume_cooling_rate, T_time_series
-  use pbe_mod, only: kappa_bins, part_rho_bins, v0_bins, ni_new, inps_distribution_logical, v, nuclei_logical, activation_logical_bins, S_vc_bins, ni_type, Loss_Sw_bins, m_source_bins
+  use pbe_mod, only: plume_cooling_rate, T_time_series, dt_input, ratio_max
+  use pbe_mod, only: kappa_bins, part_rho_bins, v0_bins, ni_new, inps_distribution_logical, v, nuclei_logical, activation_logical_bins, S_vc_bins, ni_type, Loss_Sw_bins, m_source_bins, m_source_pbe
   use ice_microphys_mod
   
   implicit none
@@ -21,7 +21,7 @@ subroutine psr_pbe()
   !real, allocatable :: Smw_time_series(:)
   
   double precision moment(0:1)
-  double precision int_time,tin,current_time,meansize,dt
+  double precision int_time,tin,current_time,meansize,dt,particle_mass
   
   integer i,i_step,n_steps,iflag,flowflag,nin,i_write,n_write,i_writesp
   integer agg_kernel_update,n_pbe_grid
@@ -49,6 +49,7 @@ subroutine psr_pbe()
   end do
   read(30,*) int_time
   read(30,*) dt
+  dt_input = dt
   read(30,*) agg_kernel_update
   read(30,*) i_writesp
   read(30,*) n_write
@@ -66,6 +67,8 @@ subroutine psr_pbe()
      open(999,file='pbe/ice_jet_temperature.out')
      allocate(Loss_Sw_bins(n_pbe_grid))
      allocate(m_source_bins(n_pbe_grid))
+     allocate(m_source_pbe(n_pbe_grid))
+     m_source_pbe(:) = 0.
   endif
 
   if (inps_distribution_logical) then 
@@ -75,7 +78,7 @@ subroutine psr_pbe()
     allocate(S_vc_bins(n_pbe_grid))
     do i=1,m
       ni(i) = ni_new(i) / dv(i)
-      write(*,*)'v_m',v_m(i)
+      !write(*,*)'v_m',v_m(i)
       !v(i) = v0_bins(i)
       S_vc_bins(i) = 0.
       if (nuclei_logical(i)) then
@@ -98,8 +101,8 @@ subroutine psr_pbe()
   i_write = 0
 
   !Allocate array with supersaturation
-  allocate(Smw_time_series(1:n_steps))
-  allocate(T_time_series(1:n_steps))
+  allocate(Smw_time_series(1:n_steps*1000))
+  allocate(T_time_series(1:n_steps*1000))
   step_update = 0
   
   !Initialize logical for droplet activation
@@ -121,9 +124,10 @@ subroutine psr_pbe()
   ! Integration
   
   ! Write initial moments
-  call PBE_moments(ni,moment,meansize)
-  
-  do i_step = 1,n_steps
+  call PBE_moments(ni,moment,meansize,particle_mass)
+  i_step = 1
+  !do i_step = 1,n_steps
+  do while (current_time < int_time)  
     step_update = i_step
     !Write temperature and growth timescale (tau_g) to output
     if (growth_function>=4) then
@@ -138,29 +142,34 @@ subroutine psr_pbe()
       T_time_series(i_step) = current_temp
       
       !Supersaturation consumption
-      if ((i_step > 1) .and. (consumption_logical)) then
+      if ((i_step > 1) .and. (consumption_logical) ) then
+        ! if (Production_Sw>Loss_Sw .and. Smw_time_series(i_step)>1) then
+        !   ! write(*,*) 'Loss_Sw',Loss_Sw
+        !   ! write(*,*) 'Production_Sw',Production_Sw
+        !   write(*,*) 'temperature', current_temp
+        ! endif
         Smw_time_series(i_step) = Smw_time_series(i_step-1) + (Production_Sw - Loss_Sw)*dt 
         plume_cooling_rate = (T_time_series(i_step) - T_time_series(i_step-1))/dt
       endif   
       p_water = Smw_time_series(i_step) * p_sat_liq
 
       !Force mixing line to not go below ice saturation - we are forcing persisten contrails conditions for jet model = 1
-      if ((p_water<p_sat_ice) .and. (activation_logical)) then
-        if (jet_cl_model .eq. 1) then
-          p_water = p_sat_ice
-          Smw_time_series(i_step) = p_water/p_sat_liq        
-        endif
-      endif
+      ! if ((p_water<p_sat_ice) .and. (activation_logical)) then
+      !   if (jet_cl_model .eq. 1) then
+      !     p_water = p_sat_ice
+      !     Smw_time_series(i_step) = p_water/p_sat_liq        
+      !   endif
+      ! endif
 
 
       !Write to output file
       if (inps_distribution_logical) then 
-        write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),maxval(S_vc_bins),moment(0),moment(1),meansize
+        write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),maxval(S_vc_bins),moment(0),moment(1),meansize,amb_p,particle_mass,sum(m_source_pbe(:))
       else
         if (activation_logical) then
-          write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),1.0,moment(0),moment(1),meansize
+          write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),1.0,moment(0),moment(1),meansize,amb_p,particle_mass,sum(m_source_pbe(:))
         else
-          write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),0.0,moment(0),moment(1),meansize
+          write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),0.0,moment(0),moment(1),meansize,amb_p,particle_mass,sum(m_source_pbe(:))
         endif
       endif  
     endif
@@ -175,9 +184,11 @@ subroutine psr_pbe()
   
     ! Integrate
     call pbe_integ(ni,dt)
+
+    !write(*,*) 'dt',dt
   
     ! Calculate moments
-    call pbe_moments(ni,moment,meansize)
+    call pbe_moments(ni,moment,meansize,particle_mass)
 
  
     !if (growth_function>=4) then
@@ -194,6 +205,7 @@ subroutine psr_pbe()
   
     ! Write moments
     current_time = current_time + dt
+    i_step = i_step + 1
   
     ! Write PSD
     if ((i_write==n_write).or.(i_step==n_steps)) then
@@ -214,6 +226,10 @@ subroutine psr_pbe()
     endif
   
   end do
+
+  write(*,*) 'user specified integration time',int_time
+  write(*,*) 'actual integration time',current_time
+  !write(*,*) 'ratio_max',ratio_max
   
   !----------------------------------------------------------------------------------------------
   
@@ -232,7 +248,7 @@ subroutine psr_pbe()
     close(999)
   endif   
   
-  1001 format(13E20.10)
+  1001 format(16E25.12E3)
   
   end subroutine psr_pbe
   

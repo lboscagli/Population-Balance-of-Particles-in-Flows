@@ -5,7 +5,7 @@ module constants
   real(kind=8), parameter :: g = 9.81_8     !! gravitational acceleration [m/s^2]
   real(kind=8), parameter :: Cp = 1004.0_8  !! specific heat of dry air at const. pressure [J/kg/K]
   real(kind=8), parameter :: Lw = 2.25e6_8   !! latent heat of vaporization [J/kg]
-  real(kind=8), parameter :: rho_w = 1000.0_8 !! density of water [kg/m^3]
+  real(kind=8), parameter :: rho_w = 997.0_8 !! density of supercooled water [kg/m^3]
   real(kind=8), parameter :: rho_ice = 917.0_8 !! density of water [kg/m^3]
   real(kind=8), parameter :: Rgas = 8.314_8    !! universal gas constant [J/mol/K]
   real(kind=8), parameter :: Mw = 18.016_8/1.0e3_8 !! molar weight of water [kg/mol]
@@ -17,6 +17,7 @@ module constants
   real(kind=8), parameter :: Ka = 2.0e-2_8  !! thermal conductivity of air [J/m/s/K]
   real(kind=8), parameter :: at = 0.96_8    !! thermal accommodation coefficient [-]
   real(kind=8), parameter :: epsilon_fluid = 0.622_8 !! Mw/Ma [-]
+  real(kind=8), parameter :: volH20 = 3.0e-29_8  !! volume of H2O molecule in supercooled water [m^3]
 
 end module constants
 
@@ -81,7 +82,7 @@ module thermo
   use optimizer
   implicit none
   public :: dv_cont, dv_corr, rho_air, es, ka_cont, ka_corr, sigma_w, sigma_ice
-  public :: Seq, Seq_water, Seq_ice, Seq_approx, kohler_crit, critical_curve, r_eff
+  public :: Seq, Seq_water, Seq_ice, Seq_approx, kohler_crit, critical_curve, r_eff, kohler_crit_2
   public :: kair_conductivity, latent_heat_cond_evap, latent_heat_dep_sub, mean_thermal_speed
 
   ! Temporary variables for minimization:
@@ -251,6 +252,38 @@ contains
     fval = -1.0_8*Seq(r, tmp_r_dry, tmp_T, tmp_kappa)
   end function neg_Seq_fixed
 
+  subroutine kohler_crit_2(T, r_dry, kappa, approx, r_crit, s_crit)
+    use iso_fortran_env, only: real64
+    implicit none
+    real(real64), intent(in)  :: T, r_dry, kappa
+    logical,      intent(in)  :: approx
+    real(real64), intent(out) :: s_crit,r_crit
+
+    real(real64), parameter :: Rgas = 8.31446261815324_real64
+    real(real64) :: A, rcrit, aw, Seq_crit
+
+    ! Basic input validation
+    if (T <= 0.0_real64.or. r_dry <= 0.0_real64.or. kappa < 0.0_real64) then
+      s_crit = 0.0_real64
+      return
+    end if
+
+    ! Kelvin term
+    A = (2.0_real64 * Mw * sigma_w(T)) / (Rgas * T * rho_w)
+
+    if (approx) then
+      ! Small-s κ-Köhler approximation
+      s_crit = sqrt( (4.0_real64 * A**3) / (27.0_real64 * kappa * r_dry**3) )
+    else
+      ! Exact within κ-Köhler: closed-form rcrit, then evaluate S_eq at rcrit
+      rcrit = sqrt( (3.0_real64 * kappa * r_dry**3) / A )
+      aw = rcrit**3 / (rcrit**3 - kappa * r_dry**3)
+      Seq_crit = aw * exp( A / rcrit )
+      s_crit = Seq_crit - 1.0_real64
+      r_crit = r_dry
+    end if
+  end subroutine kohler_crit_2
+
   subroutine kohler_crit(T, r_dry, kappa, approx, r_crit, s_crit)
     !! Compute Köhler critical radius and supersaturation for dry particle.
     !! T [K], r_dry [m], kappa [-].
@@ -271,7 +304,7 @@ contains
       tmp_T = T
       tmp_kappa = kappa
       ! Call minimizer on neg_Seq_fixed
-      r_crit = fminbound(neg_Seq_fixed, r_dry, r_dry*1.0e4_8, 1.0e-10_8)
+      r_crit = fminbound(neg_Seq_fixed, r_dry, r_dry*1.0e4_8, 1.0e-14_8)
       s_crit = Seq(r_crit, r_dry, T, kappa)
     end if
   end subroutine kohler_crit

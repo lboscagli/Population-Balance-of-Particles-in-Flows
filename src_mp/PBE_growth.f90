@@ -40,11 +40,18 @@ double precision :: eps               !< Tolerance for upwind ratio
 double precision :: rl,rr             !< r+ at left and right surface
 
 double precision :: v0_act
+integer :: j, active
 
 parameter(eps = 1.D1*epsilon(1.D0))
 
 !**********************************************************************************************
 
+active = 0
+do j=1,m
+  if (.not. activation_logical_bins(j)) then
+    active = active + 1
+  endif
+enddo
 
 !Only growth to the right present at nucleation interval
 
@@ -80,7 +87,7 @@ else if (growth_function>=4) then
     endif
     call pbe_freezing_temperature(index, v0_act, v0_max, T_frz)
     !Depositional growth model activation (Karcher et al. 1996)
-    if (((p_water .ge. p_sat_liq))) then ! .and. (current_temp > T_frz)) .or. ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz))) then !SAC criterion
+    if (((p_water .ge. p_sat_liq)) .or. ((v_m(index) > v0_act))) then ! .and. (current_temp > T_frz)) .or. ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz))) then !SAC criterion
       activation_logical = .true.
       call pbe_depositional_growth_ice(index,ni,v0_act,g_coeff1_l,g_coeff1_r,g_coeff2)   
       ni_type(index) = 2.0
@@ -91,7 +98,7 @@ else if (growth_function>=4) then
     else
       g_coeff1_l = 0.0
       g_coeff1_r = 0.0
-      g_coeff2 = 0.0      
+      g_coeff2 = 0.0         
     endif
     g_coeff1_l_prev = g_coeff1_r
     Loss_Sw_prev = Loss_Sw
@@ -100,7 +107,8 @@ else if (growth_function>=4) then
     g_termr = g_coeff1_r*(v(index)**g_coeff2)
 
     ! left growth rate
-    g_terml = g_coeff1_l*(v(index-1)**g_coeff2)  
+    g_terml = g_coeff1_l*(v(index-1)**g_coeff2)     
+
   elseif (growth_function==5) then
     !First check if there are multiple nuclei and adjust the 'activation' volume accordingly
     if (inps_distribution_logical) then 
@@ -237,46 +245,51 @@ else if (growth_function>=4) then
         v0_act = v0_min 
       endif
     endif
+    ! if (nuclei_logical(index) .or. active>1) then
+    !   v0_act = v0_bins(index)  
+    !   kappa = kappa_bins(index)
+    !   S_vc = S_vc_bins(index)
+    ! else
+    !   v0_act = v0_min
+    ! endif
+    
     ! Compute freezing temperature neeeded to check if freezing-relaxation starts based on freezing temperature
     ! Note that freezing temperature depends on liquid volume available for freezing (i.e., depends on (v(index)-v_0))
     call pbe_freezing_temperature(index, v0_act, v0_max, T_frz)
 
     !Droplet activation and growth based on Ponsonby et al. 2025
-    if (activation_logical_bins(index)) then 
-      if ((p_water .ge. p_sat_liq) .and. (current_temp > T_frz)) then
-        !write(*,*) 'Condensational growth'         
+    if ((activation_logical_bins(index))) then  
+      if ((p_water > p_sat_liq) .and. (current_temp > T_frz)) then  
+      !if ((current_temp > T_frz)) then      
         call pbe_condensational_droplet_growth_Bier(index,ni,v0_act, g_coeff1_l,g_coeff1_r,g_coeff2)
         if (ni(index) > 0) then
           ni_type(index) = 1.0 
         endif
         if (g_coeff1_l .ne. g_coeff1_l_prev) then
           g_coeff1_l = g_coeff1_l_prev
-          !Loss_Sw = Loss_Sw_prev
-        endif
-      elseif ((p_water .ge. p_sat_ice) .and. (current_temp .le. T_frz)) then 
-        !write(*,*) 'Depositional growth'
+        endif         
+      elseif ((p_water > p_sat_ice) .and. (current_temp .le. T_frz)) then  
+      !elseif ((current_temp .le. T_frz)) then 
         call pbe_depositional_growth_ice_Bier(index,ni,v0_act, g_coeff1_l,g_coeff1_r,g_coeff2) 
         if (ni(index) > 0) then
           ni_type(index) = 2.0 
         endif
         if (g_coeff1_l .ne. g_coeff1_l_prev) then
           g_coeff1_l = g_coeff1_l_prev
-          !Loss_Sw = Loss_Sw_prev
-        endif
+        endif   
       else
         g_coeff1_l = 0.0
         g_coeff1_r = 0.0
-        g_coeff2 = 0.0                   
-      endif
+        g_coeff2 = 0.0                      
+      endif 
     else
       g_coeff1_l = 0.0
       g_coeff1_r = 0.0
-      g_coeff2 = 0.0 
+      g_coeff2 = 0.0     
     endif
     
     !Store previous solution
     g_coeff1_l_prev = g_coeff1_r
-    Loss_Sw_prev = Loss_Sw
 
     ! right growth rate
     g_termr = g_coeff1_r*(v(index)**g_coeff2)
@@ -293,6 +306,7 @@ else if (growth_function>=4) then
   g_term_m = 0.5*(g_termr+g_terml)
 
 end if
+
 
 !----------------------------------------------------------------------------------------------
 !TVD scheme ref: S.Qamar et al 2006: A comparative study of high resolution schemes for solving
@@ -377,6 +391,21 @@ else
   end if
 
 end if
+
+
+!write(*,*) 'sum_internal_flux',gnl+gnl_prev
+! if (index.eq.1) then
+!    gnl = 0.0!gnl_prev
+! endif
+! if (index .eq. m) then
+!    gnr = 0.0
+! endif
+! if (index > 1) then
+!   gnl_prev = gnr*dv(index)/dv(index-1)
+! endif
+!write(*,*) 
+
+
 
 if (i_gm==1) then
   ! For mass-conservative growth scheme, apply it after the first interval
