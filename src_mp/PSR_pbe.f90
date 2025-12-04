@@ -13,6 +13,7 @@ subroutine psr_pbe()
   use pbe_mod, only: Loss_Sw, Production_Sw, Smw, p_sat_liq, p_sat_ice, amb_p, G_mixing_line, Smw_time_series, step_update, activation_logical, consumption_logical
   use pbe_mod, only: plume_cooling_rate, T_time_series, dt_input, ratio_max
   use pbe_mod, only: kappa_bins, part_rho_bins, v0_bins, ni_new, inps_distribution_logical, v, nuclei_logical, activation_logical_bins, S_vc_bins, ni_type, Loss_Sw_bins, m_source_bins, m_source_pbe
+  use pbe_mod, only: lognormal, p_sat_ice_amb
   use ice_microphys_mod
   
   implicit none
@@ -21,7 +22,7 @@ subroutine psr_pbe()
   !real, allocatable :: Smw_time_series(:)
   
   double precision moment(0:1)
-  double precision int_time,tin,current_time,meansize,dt,particle_mass
+  double precision int_time,tin,current_time,meansize,dt,particle_mass, x_water
   
   integer i,i_step,n_steps,iflag,flowflag,nin,i_write,n_write,i_writesp
   integer agg_kernel_update,n_pbe_grid
@@ -141,25 +142,30 @@ subroutine psr_pbe()
       Smw_time_series(i_step) = Smw
       T_time_series(i_step) = current_temp
       
-      !Supersaturation consumption
+      !Supersaturation consumption - K15 version
       if ((i_step > 1) .and. (consumption_logical) ) then
-        ! if (Production_Sw>Loss_Sw .and. Smw_time_series(i_step)>1) then
-        !   ! write(*,*) 'Loss_Sw',Loss_Sw
-        !   ! write(*,*) 'Production_Sw',Production_Sw
-        !   write(*,*) 'temperature', current_temp
-        ! endif
         Smw_time_series(i_step) = Smw_time_series(i_step-1) + (Production_Sw - Loss_Sw)*dt 
         plume_cooling_rate = (T_time_series(i_step) - T_time_series(i_step-1))/dt
       endif   
       p_water = Smw_time_series(i_step) * p_sat_liq
 
+      !Supersaturation consumption - BOFFIN version
+      ! p_water = Smw_time_series(i_step) * p_sat_liq
+      ! if ((i_step > 1) .and. (consumption_logical) ) then
+      !   Smw_time_series(i_step) = Smw_time_series(i_step-1) + Production_Sw*dt 
+      !   x_water = (Smw_time_series(i_step) * p_sat_liq / amb_p) - sum(m_source_pbe(:))*(18.016_8)*dt
+      !   p_water = x_water * amb_p 
+      !   Smw_time_series(i_step) = p_water / p_sat_liq 
+      !   plume_cooling_rate = (T_time_series(i_step) - T_time_series(i_step-1))/dt
+      ! endif   
+      
+
+
       !Force mixing line to not go below ice saturation - we are forcing persisten contrails conditions for jet model = 1
-      ! if ((p_water<p_sat_ice) .and. (activation_logical)) then
-      !   if (jet_cl_model .eq. 1) then
-      !     p_water = p_sat_ice
-      !     Smw_time_series(i_step) = p_water/p_sat_liq        
-      !   endif
-      ! endif
+      if ((p_water<=p_sat_ice_amb)) then
+        p_water = p_sat_ice_amb
+        Smw_time_series(i_step) = p_water/p_sat_liq        
+      endif
 
 
       !Write to output file

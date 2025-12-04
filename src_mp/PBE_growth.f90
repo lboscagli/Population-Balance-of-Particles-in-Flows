@@ -238,6 +238,7 @@ else if (growth_function>=4) then
       v0_act = v0_bins(index)  
       kappa = kappa_bins(index)
       S_vc = S_vc_bins(index)
+      !if (lognormal) r_vc = r_vc_bins(index)
     else
       if (v_m(index)>=v0_max) then
         v0_act = v0_max
@@ -245,17 +246,16 @@ else if (growth_function>=4) then
         v0_act = v0_min 
       endif
     endif
-    ! if (nuclei_logical(index) .or. active>1) then
-    !   v0_act = v0_bins(index)  
-    !   kappa = kappa_bins(index)
-    !   S_vc = S_vc_bins(index)
-    ! else
-    !   v0_act = v0_min
-    ! endif
+    ! if (lognormal) v0_max=minval(r_vc_bins(:))
+    ! if (lognormal) v0_min=minval(r_vc_bins(:))
     
     ! Compute freezing temperature neeeded to check if freezing-relaxation starts based on freezing temperature
     ! Note that freezing temperature depends on liquid volume available for freezing (i.e., depends on (v(index)-v_0))
     call pbe_freezing_temperature(index, v0_act, v0_max, T_frz)
+
+    !This requires revision - TODO  Luca 
+    if ((ni_type(index) .eq. 0.0) .or. (p_water > p_sat_liq)) T_frz=0.0
+    !if ((ni_type(index) .eq. 0.0)) T_frz=0.0
 
     !Droplet activation and growth based on Ponsonby et al. 2025
     if ((activation_logical_bins(index))) then  
@@ -269,7 +269,6 @@ else if (growth_function>=4) then
           g_coeff1_l = g_coeff1_l_prev
         endif         
       elseif ((p_water > p_sat_ice) .and. (current_temp .le. T_frz)) then  
-      !elseif ((current_temp .le. T_frz)) then 
         call pbe_depositional_growth_ice_Bier(index,ni,v0_act, g_coeff1_l,g_coeff1_r,g_coeff2) 
         if (ni(index) > 0) then
           ni_type(index) = 2.0 

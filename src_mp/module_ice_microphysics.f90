@@ -131,6 +131,7 @@ contains
     use pbe_mod, only :v_m, m, dv, v, v0_max, v0_min !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
     use pbe_mod, only :current_temp, amb_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
     use pbe_mod, only :Smw_time_series, step_update, r_vc, S_vc, inps_type_no, activation_logical_bins, part_rho_bins, Loss_Sw_bins, m_source_bins
+    use pbe_mod, only :lognormal
     use thermo
 
     implicit none
@@ -188,7 +189,7 @@ contains
     !   endif
     !   S_v = S_v + 1.0     
     ! endif   
-    if ((v_m(index) > v0_max) .and. (inps_type_no .ge. 2)) then
+    if ((v_m(index) > v0_max) .and. (inps_type_no .ge. 2) .or. (lognormal)) then
       S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
       !part_den = rho_w
     else
@@ -281,7 +282,7 @@ contains
     !   endif
     !   S_v = S_v + 1.0     
     ! endif
-    if ((v_m(index) > v0_max) .and. (inps_type_no .ge. 2)) then
+    if ((v_m(index) > v0_max) .and. (inps_type_no .ge. 2) .or. (lognormal)) then
       S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
       !part_den = rho_w
     else
@@ -362,6 +363,7 @@ contains
     use pbe_mod, only :v_m, m, dv, v, v0_min, v0_max !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
     use pbe_mod, only :current_temp, amb_temp, amb_p, G_mixing_line, part_den_l, alpha_ice, p_water, current_XH2O, jet_cl_model, kappa, Loss_Sw, current_rho
     use pbe_mod, only :Smw_time_series, step_update, r_vc, S_vc, Loss_Sw_bins, inps_type_no, m_source_bins
+    use pbe_mod, only :lognormal
     use thermo
 
     implicit none
@@ -412,7 +414,7 @@ contains
     !   endif
     !   S_v = S_v + 1.0     
     ! endif
-    if ((v_m(index) > v0_max) .and. (inps_type_no .ge. 2)) then
+    if ((v_m(index) > v0_max) .and. (inps_type_no .ge. 2)) then !if (((active > 1) .or. (v_m(index) .eq. v0_min))) then
       S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
       !part_den = rho_w
     else
@@ -479,7 +481,7 @@ contains
     !   S_v = S_v + 1.0     
     ! endif
 
-    if ((v_m(index) > v0_max) .and. (inps_type_no .ge. 2)) then
+    if ((v_m(index) > v0_max) .and. (inps_type_no .ge. 2) ) then
       S_v = Seq_water(r_part, current_temp) ! this computes the supersaturation, so we need to add 1.0 to get the saturatiom      
       !part_den = rho_w
     else
@@ -691,8 +693,9 @@ contains
   !**********************************************************************************************
 
     use pbe_mod, only :v0, v_m, m, dv, v !v0 = nuclei volume (named v_nuc in BOFFIN+PBE)
-    use pbe_mod, only :current_temp, plume_cooling_rate, inps_type_no, activation_logical_bins, v0_bins, v0_min
-    use pbe_mod, only :diameter_jet, u_0j, T_0j, amb_temp, r_vc 
+    use pbe_mod, only :current_temp, plume_cooling_rate, inps_type_no, activation_logical_bins, v0_bins, v0_min, nuclei_logical
+    use pbe_mod, only :diameter_jet, u_0j, T_0j, amb_temp, r_vc
+    use pbe_mod, only :lognormal, r_vc_bins
     use thermo
 
     implicit none
@@ -707,13 +710,13 @@ contains
     double precision :: a_1=-3.5714 !(1/K) - Karcher et al
     double precision :: a_2=858.719
 
-    double precision :: epsilon_t,beta,r_0j,x_m,jet_cooling_rate,Dilution_coeff,tau_m
+    double precision :: epsilon_t,beta,r_0j,x_m,jet_cooling_rate,Dilution_coeff,tau_m,lambda
 
     integer :: j, active
     
     active = 0
     do j=1,m
-      if (.not. activation_logical_bins(j)) then
+      if ((nuclei_logical(j)).and. (activation_logical_bins(j))) then
         active = active + 1
       endif
     enddo   
@@ -722,11 +725,13 @@ contains
     !LWV = v_m(index) !- v0 : to deal with multiple particles we make an assumption here as we use only the wet diameter
 
     !Compute liquid water volume (LWV)
-    if ((active > 1) .or. (v_m(index) .eq. v0_min)) then !(v_m(index) < v0_max) then
+    if (((active .le. 1) .or. (v_m(index) .eq. v0_min))) then !(v_m(index) < v0_max) then
       LWV = v_m(index) - (4.0*pi)/3.0 * r_vc**3 !v0_act
     else
       LWV = v_m(index) ! : to deal with multiple particles we make an assumption here as we use only the wet diameter
     endif
+
+    !LWV = v_m(index)
 
     !if (inps_type_no .le. 1) then
     !  LWV = v_m(index) - v0_act
@@ -756,8 +761,11 @@ contains
     !Jet cooling rate
     jet_cooling_rate = - beta * ( (T_0j - amb_temp) / tau_m ) * Dilution_coeff**(1+1/beta)
 
+    !write(*,*) 'lambda: ', lambda, 'LWV: ', LWV, 'J_ice: ', J_ice, 'tau_frz: ', tau_frz,'Temp: ', T
+    !lambda = LWV * (10.d0**6 * (exp(-3.574d0*current_temp + 858.719d0))) * (1.d0/( -3.574d0 * jet_cooling_rate))
+
     !COmpute freezing temperature
-    if (LWV .le. 0.) then
+    if (LWV .eq. 0.0) then !(LWV .eq. 0.0) then
       T_frz = 0.0
     else  
       !Note: plume_cooling_rate is determined numerically from the jet temperature profile

@@ -141,7 +141,7 @@ def rho_air(T, P, RH):
     return P / (Rd * Tv)
 
 # === USER INPUTS ===
-Nbins = 35
+Nbins = 55
 r01 = 2e-9
 r02 = 20e-9
 EI01, EI02 = 1e17, 1e12
@@ -151,7 +151,7 @@ output_filename = "../psr/ice_nucleating_particles.in"
 
 v01 = (4/3) * np.pi * r01**3
 v02 = (4/3) * np.pi * r02**3
-vmax = v02*1e10  # User sets this!
+vmax = v02*1e11  # User sets this!
 
 # === Jet parameters ===
 jet_V = 350.0
@@ -221,6 +221,7 @@ if EI02 > 0:
 # === Write to output file ===
 os.makedirs(os.path.dirname(output_filename), exist_ok=True)
 with open(output_filename, 'w') as f:
+    f.write(".false.\n")
     f.write(f"{Nbins}\n")
     for i in range(Nbins):
         f.write(f"{edges[i]:.16e}\n")

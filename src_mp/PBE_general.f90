@@ -61,6 +61,7 @@ double precision :: inps_type_no !number of aerosol particle that may activate
 
 logical :: activation_logical !Water droplet activation flag (initialize as .false. and then check saturation)
 logical :: consumption_logical !Flag for user activation of consumption of supersaturation based on K15 model
+logical :: lognormal !flag for log-normal distribution
 
 
 !Variable for ice_nucleating_particles.in file
@@ -69,8 +70,10 @@ double precision, allocatable, dimension(:) :: kappa_bins, part_rho_bins, v0_bin
 logical, allocatable, dimension(:) :: nuclei_logical, activation_logical_bins !array with logical variable to define if the bin is a nuclei or not
 double precision :: v0_min, v0_max
 real(kind=8), allocatable, dimension(:) :: S_vc_bins, Loss_Sw_bins, m_source_bins, m_source_pbe
+double precision, allocatable, dimension(:) :: r_vc_bins
 double precision :: moment_0_prev
 double precision :: dt_input, ratio_max
+double precision :: p_sat_ice_amb,amb_RHi
 
 integer m,grid_type
 integer i_gm,solver_pbe
@@ -276,9 +279,11 @@ subroutine pbe_ice_read()
   read(30,*) kappa
   read(30,*) consumption_logical
   read(30,*) inps_distribution_logical
+  read(30,*) amb_RHi
   close(30)
 
   amb_rho = amb_p / amb_temp / (gascon / M_air) 
+  p_sat_ice_amb = amb_RHi*(EXP(9.550426 - 5723.265/amb_temp + 3.53068 * LOG(amb_temp) -  0.00728332 * amb_temp )) 
   
 end subroutine pbe_ice_read
 
@@ -506,6 +511,125 @@ end subroutine pbe_init
 
 !**********************************************************************************************
 
+! subroutine pbe_file_init()
+
+! !**********************************************************************************************
+! !
+! ! Re-Initialises PBE data and grid based on external user input file
+! !
+! ! Luca Boscagli 21/07/2025
+! !
+! !**********************************************************************************************
+
+! use pbe_mod 
+
+! implicit none
+
+! ! Locals
+! double precision :: part_den_l_mean, v0_mean!, inps_type_no
+! integer :: ios, i, ierr, Nbins_tmp, iunit
+! character(len=256) :: line
+! iunit = 10
+! ierr = 0
+
+! ! Open file
+! open(unit=iunit, file='psr/ice_nucleating_particles.in', status='old', action='read', iostat=ios)
+! if (ios /= 0) then
+!   ierr = ios
+!   print *, 'Error opening file: psr/ice_nucleating_particles.in'
+!   return
+! end if
+
+! ! Read number of bins
+! read(iunit, *, iostat=ios) Nbins_tmp
+! if (Nbins_tmp /= m) then
+!   ierr = ios
+!   print *, 'Nbins and m are not matching, check input files'
+!   close(iunit)
+!   return
+! end if
+
+! ! Read first grid edge 
+! read(iunit, *, iostat=ios) v(0)
+
+! ! Allocate mid grid points and other particle variables
+! allocate(v0_bins(Nbins_tmp), stat=ios)
+! if (ios /= 0) then
+!   ierr = ios
+!   print *, 'ERROR: Allocation failed for v array'
+!   close(iunit)
+!   return
+! end if
+
+! allocate(part_rho_bins(Nbins_tmp), kappa_bins(Nbins_tmp), ni_new(Nbins_tmp), nuclei_logical(Nbins_tmp), stat=ios)
+! if (ios /= 0) then
+!   ierr = ios
+!   print *, 'ERROR: Allocation failed for one or more arrays'
+!   deallocate(v)
+!   close(iunit)
+!   return
+! end if
+
+! ! Read data lines
+! do i = 1, Nbins_tmp
+!   read(iunit, *, iostat=ios) v0_bins(i), dv(i), part_rho_bins(i), kappa_bins(i), ni_new(i), nuclei_logical(i)
+!   read(iunit, *, iostat=ios) v(i)
+!   if (ios /= 0) then
+!     ierr = ios
+!     print *, 'Error reading data line ', i
+!     deallocate(v0_bins, part_rho_bins, kappa_bins, ni_new)
+!     close(iunit)
+!     return
+!   end if
+! end do
+
+! ! Define a mean (arithmetic) nuclei radius (volume) and density 
+! !!! NOTE: this is an assumption that is needed to keep using one PBE only even in the presence of multiple ice-nucleating particles
+! !!! these arithmetic mean values will only be used to compute the volumetric growth rates, while for the activation the 'true' nuclei
+! !!! (dry) radius specified by the user in the input file (ice_nucleating_particles.in) will be used 
+! v0_mean = 0.
+! v0_min = 1e35
+! v0_max = 0.
+! part_den_l_mean = 0.
+! inps_type_no = 0.
+! do i = 1, Nbins_tmp
+!   if (nuclei_logical(i)) then
+!     v0_mean = v0_mean + v0_bins(i)
+!     v0_min = min(v0_min,v0_bins(i))
+!     v0_max = max(v0_max,v0_bins(i))
+!     part_den_l_mean = part_den_l_mean + part_rho_bins(i)
+!     inps_type_no = inps_type_no + 1.0
+!   endif  
+! end do  
+! v0 = v0_mean/inps_type_no
+! part_den_l = part_den_l_mean/inps_type_no
+
+! write(*,*) 'Mean v0: ',v0
+! write(*,*) 'Mean part_den_l: ',part_den_l
+
+
+! !Interval length and mid-points
+! write(*,*) 'index=0'
+! write(*,*) 'v(0)',v(0)
+! do i=1,m
+!   v_m(i) = v0_bins(i)
+!   write(*,*) 'index',i
+!   write(*,*) 'v_m',v_m(i) 
+!   write(*,*) 'dv',dv(i)
+!   write(*,*) 'v',v(i)
+!   !Interval length
+!   if (dv(i) .ne. (v(i)-v(i-1))) then
+!     write(*,*) 'WARNING', abs(dv(i) - (v(i)-v(i-1)))
+!   endif
+! end do
+
+
+
+
+! close(iunit)
+
+! end subroutine pbe_file_init
+
 subroutine pbe_file_init()
 
 !**********************************************************************************************
@@ -521,9 +645,13 @@ use pbe_mod
 implicit none
 
 ! Locals
-double precision :: part_den_l_mean, v0_mean!, inps_type_no
-integer :: ios, i, ierr, Nbins_tmp, iunit
+double precision :: part_den_l_mean, v0_mean
+double precision :: v0_min_arr(10), v0_max_arr(10)
+double precision :: kappa_unique(10)
+integer :: ios, i, ierr, Nbins_tmp, iunit, Nunique, j
+logical :: found
 character(len=256) :: line
+
 iunit = 10
 ierr = 0
 
@@ -534,6 +662,9 @@ if (ios /= 0) then
   print *, 'Error opening file: psr/ice_nucleating_particles.in'
   return
 end if
+
+! Read flag for log-normal distribution
+read(iunit, *, iostat=ios) lognormal
 
 ! Read number of bins
 read(iunit, *, iostat=ios) Nbins_tmp
@@ -578,27 +709,74 @@ do i = 1, Nbins_tmp
   end if
 end do
 
+! === Identify unique kappa values among nuclei bins ===
+Nunique = 0
+
+do i = 1, Nbins_tmp
+  if (nuclei_logical(i)) then
+    found =.false.
+    do j = 1, Nunique
+      if (abs(kappa_bins(i) - kappa_unique(j)) < 1e-8) then
+        found =.true.
+        exit
+      endif
+    end do
+    if (.not. found) then
+      Nunique = Nunique + 1
+      kappa_unique(Nunique) = kappa_bins(i)
+    endif
+  endif
+end do
+
+print *, 'Unique kappa values among nuclei bins:'
+do j = 1, Nunique
+  print *, kappa_unique(j)
+end do
+
+! === Compute min and max nuclei size for each unique kappa ===
+do j = 1, Nunique
+  v0_min_arr(j) = 1e35
+  v0_max_arr(j) = 0.0
+end do
+
+do i = 1, Nbins_tmp
+  if (nuclei_logical(i)) then
+    do j = 1, Nunique
+      if (abs(kappa_bins(i) - kappa_unique(j)) < 1e-8) then
+        v0_min_arr(j) = min(v0_min_arr(j), v0_bins(i))
+        v0_max_arr(j) = max(v0_max_arr(j), v0_bins(i))
+      endif
+    end do
+  endif
+end do
+
+print *, 'Min nuclei volumes for each kappa:'
+do j = 1, Nunique
+  print *, 'kappa =', kappa_unique(j), 'v0_min =', v0_min_arr(j)
+end do
+print *, 'Max nuclei volumes for each kappa:'
+do j = 1, Nunique
+  print *, 'kappa =', kappa_unique(j), 'v0_max =', v0_max_arr(j)
+end do
+
+! Optionally, set v0_min and v0_max as the overall min/max
+v0_min = minval(v0_min_arr(1:Nunique))
+v0_max = maxval(v0_min_arr(1:Nunique))
+
 ! Define a mean (arithmetic) nuclei radius (volume) and density 
-!!! NOTE: this is an assumption that is needed to keep using one PBE only even in the presence of multiple ice-nucleating particles
-!!! these arithmetic mean values will only be used to compute the volumetric growth rates, while for the activation the 'true' nuclei
-!!! (dry) radius specified by the user in the input file (ice_nucleating_particles.in) will be used 
 v0_mean = 0.
-v0_min = 1e35
-v0_max = 0.
 part_den_l_mean = 0.
-inps_type_no = 0.
+inps_type_no = 0
 do i = 1, Nbins_tmp
   if (nuclei_logical(i)) then
     v0_mean = v0_mean + v0_bins(i)
-    v0_min = min(v0_min,v0_bins(i))
-    v0_max = max(v0_max,v0_bins(i))
     part_den_l_mean = part_den_l_mean + part_rho_bins(i)
     inps_type_no = inps_type_no + 1.0
   endif  
 end do  
-v0 = v0_mean/inps_type_no
+v0 = v0_min/inps_type_no
 part_den_l = part_den_l_mean/inps_type_no
-
+inps_type_no = Nunique
 write(*,*) 'Mean v0: ',v0
 write(*,*) 'Mean part_den_l: ',part_den_l
 
@@ -612,17 +790,15 @@ do i=1,m
   write(*,*) 'dv',dv(i)
   write(*,*) 'v',v(i)
   !Interval length
-  if (dv(i) .ne. (v(i)-v(i-1))) then
+  if (dv(i).ne. (v(i)-v(i-1))) then
     write(*,*) 'WARNING', abs(dv(i) - (v(i)-v(i-1)))
   endif
 end do
 
-
-
-
 close(iunit)
 
 end subroutine pbe_file_init
+
 
 !**********************************************************************************************
 

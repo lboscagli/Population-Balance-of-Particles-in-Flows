@@ -179,75 +179,40 @@ end if
 if (growth_function>0) then
 
   if (growth_function .eq. 7) then
-    !Check k-kholer condition for each index if it is a nuclei
-    if (lognormal) then 
-      !Initialization
-      if (step_update .le. 1) then 
-        allocate(r_vc_bins(m))
-        r_vc_bins(:) = 1.0e35
-        activation_logical_bins(:) = .false.
-      endif
+   !Check k-kholer condition for each index if it is a nuclei
+    do index = 1,m
+      if (nuclei_logical(index) .and. (.not. activation_logical_bins(index))) then
+        call kohler_crit(current_temp, (3.0 / (4.0 * 3.141592653589793E+00) * v0_bins(index) )**(1.0/3.0), kappa_bins(index), .false., r_vc, S_vc)
+        S_vc = S_vc + 1.0
+        if ((Smw_time_series(step_update) .ge. S_vc)) then  
+          !activation_logical = .true.
+          activation_logical_bins(index) = .true.
+          S_vc_bins(index) = S_vc
+          write(*,*) 'S_vc [-]',S_vc
+          write(*,*) 'r_vc [nm]',r_vc*1E9
+          
+          ! if (((3.0 / (4.0 * 3.141592653589793E+00) * v(index) )**(1.0/3.0)) < r_vc) then
+          ! !Nucleation
+          ! !write(*,*) 'WARNING: nucleation'
+          !   niprime(index) = niprime(index) + (((4.0 * 3.141592653589793E+00) / 3.0 * (r_vc**3)) - v_m(index))/dt/dv(index)
+          ! !write(*,*) 'growth due to nucleation',niprime(index)
+          ! endif
 
-
-      do index = 1,m
-        if (nuclei_logical(index) .and. (.not. activation_logical_bins(index))) then
-          call kohler_crit(current_temp, (3.0 / (4.0 * 3.141592653589793E+00) * v0_bins(index) )**(1.0/3.0), kappa_bins(index), .false., r_vc, S_vc)
-          S_vc = S_vc + 1.0
-          if ((Smw_time_series(step_update) .ge. S_vc)) then  
-
-            S_vc_bins(index) = S_vc
-            r_vc_bins(index) =  r_vc 
-            
+          if ((((3.0 / (4.0 * 3.141592653589793E+00) * v(index) )**(1.0/3.0)) < r_vc) .and. ni(index)>0) then
+            write(*,*) 'WARNING: nuclei required shit from bin index',index
             do jj = index,m
-              if (((3.0 / (4.0 * 3.141592653589793E+00) * v_m(jj) )**(1.0/3.0)) >= r_vc) then
-                if (.not. activation_logical_bins(jj)) then 
-                  r_vc_bins(jj) =  r_vc
-                  activation_logical_bins(jj) = .true. 
-                endif
+              if (((3.0 / (4.0 * 3.141592653589793E+00) * v(jj) )**(1.0/3.0)) >= r_vc) then
+                ni(jj) = ni(jj) + ni(index)*(dv(index)/dv(jj))!*rho_w(index)/part_rho_bins(index))
+                ni(index) = 0.0
+                exit
               endif
-            end do 
-
+            end do
+            write(*,*) 'WARNING: nuclei shifted to bin index ',jj
           endif
-        endif  
-      end do
 
-    else
-
-      !Check k-kholer condition for each index if it is a nuclei
-      do index = 1,m
-        if (nuclei_logical(index) .and. (.not. activation_logical_bins(index))) then
-          call kohler_crit(current_temp, (3.0 / (4.0 * 3.141592653589793E+00) * v0_bins(index) )**(1.0/3.0), kappa_bins(index), .false., r_vc, S_vc)
-          S_vc = S_vc + 1.0
-          if ((Smw_time_series(step_update) .ge. S_vc)) then  
-            !activation_logical = .true.
-            activation_logical_bins(index) = .true.
-            S_vc_bins(index) = S_vc
-            write(*,*) 'S_vc [-]',S_vc
-            write(*,*) 'r_vc [nm]',r_vc*1E9
-            
-            ! if (((3.0 / (4.0 * 3.141592653589793E+00) * v(index) )**(1.0/3.0)) < r_vc) then
-            !Nucleation
-            ! write(*,*) 'WARNING: nucleation'
-            ! niprime(index) = niprime(index) + (((4.0 * 3.141592653589793E+00) / 3.0 * (r_vc**3)) - v_m(index))/dt/dv(index)
-            ! write(*,*) 'growth due to nucleation',niprime(index)
-            ! endif
-
-            if (((3.0 / (4.0 * 3.141592653589793E+00) * v_m(index) )**(1.0/3.0)) < r_vc) then
-              write(*,*) 'WARNING: nuclei required shit from bin index',index
-              do jj = index,m
-                if (((3.0 / (4.0 * 3.141592653589793E+00) * v_m(jj) )**(1.0/3.0)) >= r_vc) then
-                  ni(jj) = ni(jj) + ni(index)*(dv(index)/dv(jj))!*rho_w(index)/part_rho_bins(index))
-                  ni(index) = 0.0
-                  exit
-                endif
-              end do
-              write(*,*) 'WARNING: nuclei shifted to bin index ',jj
-            endif
-
-          endif
-        endif  
-      end do
-    endif
+        endif
+      endif  
+    end do
   endif 
 
   call p_sat_liq_murphy_koop(p_water_sat_liq)
