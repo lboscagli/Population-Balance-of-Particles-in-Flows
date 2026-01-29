@@ -107,6 +107,7 @@ def postprocess_case(case_dir):
     meansize = 2*((3/4/np.pi*data_T[:,12])**(1/3))
     Pressure = data_T[:,13]; particle_mass = data_T[:,14]; growth_rate_pbe = data_T[:,15]
     meansize_ice = 2*((3/4/np.pi*data_T[:,16])**(1/3))
+    moment_0_ice = data_T[:,17]; moment_1_ice = data_T[:,18]
 
     # Saturated water vapor
     p_water_sat_liq = np.exp(54.842763 - 6763.22 / Temperature - 4.21 * np.log(Temperature) + 0.000367 * Temperature +
@@ -147,7 +148,8 @@ def postprocess_case(case_dir):
     dic = {'time':time,'Temperature':Temperature,'activation_binary':activation_binary,
            'P_v':P_v_consumed,'P_sat_liq':p_water_sat_liq,'P_sat_ice':p_water_sat_ice,
            'Saturation':Smw_consumed,'Mean_diameter':meansize,'Mean_diameter_ice':meansize_ice,
-           'moment_0':moment_0,'moment_1':moment_1}
+           'moment_0':moment_0,'moment_1':moment_1,
+           'moment_0_ice':moment_0_ice,'moment_1_ice':moment_1_ice}
     savemat(os.path.join(plot_dir,'statistics.mat'), dic)
 
     # ---------------- Save growth rate .mat ----------------

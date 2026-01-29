@@ -21,8 +21,8 @@ subroutine psr_pbe()
   double precision, allocatable :: ni(:)
   !real, allocatable :: Smw_time_series(:)
   
-  double precision moment(0:1)
-  double precision int_time,tin,current_time,meansize,dt,particle_mass, x_water
+  double precision moment(0:1), moment_ice(0:1)
+  double precision int_time,tin,current_time,meansize,dt,particle_mass, x_water, meansize_ice
   
   integer i,i_step,n_steps,iflag,flowflag,nin,i_write,n_write,i_writesp
   integer agg_kernel_update,n_pbe_grid
@@ -125,10 +125,10 @@ subroutine psr_pbe()
   ! Integration
   
   ! Write initial moments
-  call PBE_moments(ni,moment,meansize,particle_mass)
+  call PBE_moments(ni,moment,meansize,particle_mass,meansize_ice,moment_ice)
   i_step = 1
   !do i_step = 1,n_steps
-  do while (current_time < int_time)  
+  do while ((current_time < int_time))! .and. (abs(current_temp-amb_temp).ge.0.01))
     step_update = i_step
     !Write temperature and growth timescale (tau_g) to output
     if (growth_function>=4) then
@@ -170,12 +170,12 @@ subroutine psr_pbe()
 
       !Write to output file
       if (inps_distribution_logical) then 
-        write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),maxval(S_vc_bins),moment(0),moment(1),meansize,amb_p,particle_mass,sum(m_source_pbe(:))
+        write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),maxval(S_vc_bins),moment(0),moment(1),meansize,amb_p,particle_mass,sum(m_source_pbe(:)),meansize_ice,moment_ice(0),moment_ice(1)
       else
         if (activation_logical) then
-          write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),1.0,moment(0),moment(1),meansize,amb_p,particle_mass,sum(m_source_pbe(:))
+          write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),1.0,moment(0),moment(1),meansize,amb_p,particle_mass,sum(m_source_pbe(:)),meansize_ice,moment_ice(0),moment_ice(1)
         else
-          write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),0.0,moment(0),moment(1),meansize,amb_p,particle_mass,sum(m_source_pbe(:))
+          write(999,1001) current_time,current_temp,current_rho,p_water,tau_g,current_XH2O,Loss_Sw,Smw,Smw_time_series(i_step),0.0,moment(0),moment(1),meansize,amb_p,particle_mass,sum(m_source_pbe(:)),meansize_ice,moment_ice(0),moment_ice(1)
         endif
       endif  
     endif
@@ -194,7 +194,7 @@ subroutine psr_pbe()
     !write(*,*) 'dt',dt
   
     ! Calculate moments
-    call pbe_moments(ni,moment,meansize,particle_mass)
+    call pbe_moments(ni,moment,meansize,particle_mass,meansize_ice,moment_ice)
 
  
     !if (growth_function>=4) then
@@ -235,7 +235,8 @@ subroutine psr_pbe()
 
   write(*,*) 'user specified integration time',int_time
   write(*,*) 'actual integration time',current_time
-  !write(*,*) 'ratio_max',ratio_max
+  write(*,*) 'ambient temperature',amb_temp
+  write(*,*) 'current temperature',current_temp
   
   !----------------------------------------------------------------------------------------------
   
@@ -254,7 +255,7 @@ subroutine psr_pbe()
     close(999)
   endif   
   
-  1001 format(16E25.12E3)
+  1001 format(19E25.12E3)
   
   end subroutine psr_pbe
   

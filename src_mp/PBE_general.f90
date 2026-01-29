@@ -1033,7 +1033,7 @@ end subroutine inc_ratio
 
 !**********************************************************************************************
 
-subroutine pbe_moments(ni,moment,meansize,particle_mass)
+subroutine pbe_moments(ni,moment,meansize,particle_mass,meansize_ice,moment_ice)
 
 !**********************************************************************************************
 !
@@ -1051,10 +1051,10 @@ use thermo
 implicit none
 
 double precision, dimension(m), intent(in)    :: ni
-double precision, dimension(0:1), intent(out) :: moment
-double precision, intent(out)                 :: meansize,particle_mass
+double precision, dimension(0:1), intent(out) :: moment,moment_ice
+double precision, intent(out)                 :: meansize,particle_mass,meansize_ice
 
-double precision M1_lp,lp
+double precision M1_lp,lp,moment_0_ice, moment_1_ice
 
 integer i
 
@@ -1063,14 +1063,18 @@ integer i
 moment(0) = 0.0
 moment(1) = 0.0
 particle_mass = 0.0
+moment_0_ice = 0.0
+moment_1_ice = 0.0
 
 do i=1,m
   moment(0) = moment(0) + ni(i)*dv(i)
-  moment(1) = moment(1) + 0.5D0*(v(i-1)+v(i))*ni(i)*dv(i)
+  moment(1) = moment(1) + 0.5D0*(v(i-1)+v(i))*ni(i)*dv(i) 
   if (ni_type(i) .eq. 1.0) then
     particle_mass = particle_mass + 0.5D0*(v(i-1)+v(i))*ni(i)*dv(i)*rho_w
   elseif (ni_type(i) .eq. 2.0) then
     particle_mass = particle_mass + 0.5D0*(v(i-1)+v(i))*ni(i)*dv(i)*rho_ice
+    moment_0_ice = moment_0_ice + ni(i)*dv(i)
+    moment_1_ice = moment_1_ice + 0.5D0*(v(i-1)+v(i))*ni(i)*dv(i) 
   else 
     if (inps_distribution_logical) then
       particle_mass = particle_mass + 0.5D0*(v(i-1)+v(i))*ni(i)*dv(i)*part_rho_bins(i)
@@ -1103,6 +1107,13 @@ else
   meansize = 0.D0
 end if
 
+if (moment_0_ice.gt.1.D-10) then
+  meansize_ice = moment_1_ice/moment_0_ice
+else
+  meansize_ice = 0.D0
+end if
+moment_ice(0) = moment_0_ice
+moment_ice(1) = moment_1_ice
 end subroutine pbe_moments
 
 !**********************************************************************************************
@@ -1132,10 +1143,11 @@ integer, intent(in) :: i_writesp
 integer, intent(in) :: i_step
 
 double precision :: nitemp(m),eta(m),psi(m)
-double precision, dimension(0:1) :: moment
+double precision, dimension(0:1) :: moment, moment_ice
 
 double precision meansize
 double precision particle_mass
+double precision meansize_ice
 
 integer i
 
@@ -1144,7 +1156,7 @@ character(len=10) :: i_step_str
 
 !----------------------------------------------------------------------------------------------
 
-call pbe_moments(ni,moment,meansize,particle_mass)
+call pbe_moments(ni,moment,meansize,particle_mass,meansize_ice,moment_ice)
 
 do i=1,m
   if (abs(ni(i))<1.D-16) then
