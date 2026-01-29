@@ -55,112 +55,114 @@ Added functionality for condensational water droplet and depositional ice-crysta
 2. The user can specify discretization of the PBE and characteristics of the nuclei of the particles via a user input file. This can be generated through the python script PBE_input_file.py contained in the 'pre_processing' directory. 
 3. Results can be analysed via using the plotting functions contained in the python post-processing routines provided in the 'post_processing' directory.
 
-## Repository structured
-D:.
-│   cpmod_mp
-│   LICENSE.txt
-│   problem.in
-│   README.md
-│   run_cpmod.sh
+### Repository structure
+```text
+│ cpmod_mp # Main executable/script
+│ LICENSE.txt # License file
+│ problem.in # Input file template
+│ README.md # This file
+│ run_cpmod.sh # Script to run CPMOD
 │
-├───BATCH_MODE
-│       INPS_WRITER.py
-│       PLOT_STATISTICS.py
-│       README.md
-│       run_batch.py
-│       run_cpmod_batch.sh
-│       run_postprocessing_batch.py
+├───BATCH_MODE # Scripts for batch processing
+│ INPS_WRITER.py # Generate input files
+│ PLOT_STATISTICS.py # Plot results
+│ README.md # Batch mode instructions
+│ run_batch.py # Run batch simulations
+│ run_cpmod_batch.sh # Shell script to run CPMOD in batch
+│ run_postprocessing_batch.py # Post-processing
 │
-├───compile
-│       agg_cfv_mod.mod
-│       constants.mod
-│       CPMOD_pbe.o
-│       frag_cfv_mod.mod
-│       gauss_mod.mod
-│       ice_microphys_mod.mod
-│       makefile
-│       module_ice_microphysics.o
-│       module_thermo.o
-│       optimizer.mod
-│       PBE_agg.o
-│       PBE_agg_kernels.o
-│       PBE_discrete.o
-│       pbe_discrete_mod.mod
-│       PBE_frag.o
-│       PBE_general.o
-│       PBE_growth.o
-│       pbe_mod.mod
-│       PBE_solver.o
-│       PBE_test.o
-│       PSR_pbe.o
-│       thermo.mod
+├───compile # Compilation files and modules
+│ agg_cfv_mod.mod
+│ constants.mod
+│ CPMOD_pbe.o
+│ frag_cfv_mod.mod
+│ gauss_mod.mod
+│ ice_microphys_mod.mod
+│ makefile
+│ module_ice_microphysics.o
+│ module_thermo.o
+│ optimizer.mod
+│ PBE_agg.o
+│ PBE_agg_kernels.o
+│ PBE_discrete.o
+│ pbe_discrete_mod.mod
+│ PBE_frag.o
+│ PBE_general.o
+│ PBE_growth.o
+│ pbe_mod.mod
+│ PBE_solver.o
+│ PBE_test.o
+│ PSR_pbe.o
+│ thermo.mod
 │
-├───compile_mp
-│       makefile
+├───compile_mp # Compilation for multi-particles version
+│ makefile
 │
-├───Info_material
-│       combustion_water_vapor_formulas.docx
-│       CPMOD_info.pdf
-│       FUEL_water_vapor_concentration.py
+├───Info_material # Documentation and reference material
+│ combustion_water_vapor_formulas.docx
+│ CPMOD_info.pdf
+│ FUEL_water_vapor_concentration.py
 │
-├───pbe
-│       pbe.in
-│       pbe.in.default
-│       pbe.in.nasa_buthanol_exp
-│       psd.out
-│       psd_analytical.out
-│       psd_sp.out
+├───pbe # PBE input/output files
+│ pbe.in
+│ pbe.in.default
+│ pbe.in.nasa_buthanol_exp
+│ psd.out
+│ psd_analytical.out
+│ psd_sp.out
 │
-├───post_processing
-│       READ_MAT_psd_statistics.py
-│       READ_psd.py
-│       READ_psd_time_history.py
+├───post_processing # Scripts for analyzing simulation results
+│ READ_MAT_psd_statistics.py
+│ READ_psd.py
+│ READ_psd_time_history.py
 │
-├───pre_processing
-│       PBE_input_file_lognormal.py
-│       PBE_input_file_monodisperse.py
+├───pre_processing # Scripts for generating PBE input files
+│ PBE_input_file_lognormal.py
+│ PBE_input_file_monodisperse.py
 │
-├───psr
-│       ice.in
-│       ice.in.nasa_exp_buthanol
-│       ice_nucleating_particles.in
-│       psr.in
-│       psr.in.nasa_exp_buthanol
+├───psr # PSR input files
+│ ice.in
+│ ice.in.nasa_exp_buthanol
+│ ice_nucleating_particles.in
+│ psr.in
+│ psr.in.nasa_exp_buthanol
 │
-├───src
-│       CPMOD_pbe.f90
-│       module_ice_microphysics.f90
-│       module_thermo.f90
-│       PBE_agg.f90
-│       PBE_agg_kernels.f90
-│       PBE_discrete.f90
-│       PBE_frag.f90
-│       PBE_general.f90
-│       PBE_growth.f90
-│       PBE_solver.f90
-│       PBE_test.f90
-│       PSR_pbe.f90
+├───src # Source code (single particle)
+│ CPMOD_pbe.f90
+│ module_ice_microphysics.f90
+│ module_thermo.f90
+│ PBE_agg.f90
+│ PBE_agg_kernels.f90
+│ PBE_discrete.f90
+│ PBE_frag.f90
+│ PBE_general.f90
+│ PBE_growth.f90
+│ PBE_solver.f90
+│ PBE_test.f90
+│ PSR_pbe.f90
 │
-├───src_mp
-│       CPMOD_pbe.f90
-│       module_ice_microphysics.f90
-│       module_thermo.f90
-│       PBE_agg.f90
-│       PBE_agg_kernels.f90
-│       PBE_discrete.f90
-│       PBE_frag.f90
-│       PBE_general.f90
-│       PBE_growth.f90
-│       PBE_solver.f90
-│       PBE_solver.modisperse.f90
-│       PBE_test.f90
-│       PSR_pbe.f90
+├───src_mp # Source code (multi-particle version)
+│ CPMOD_pbe.f90
+│ module_ice_microphysics.f90
+│ module_thermo.f90
+│ PBE_agg.f90
+│ PBE_agg_kernels.f90
+│ PBE_discrete.f90
+│ PBE_frag.f90
+│ PBE_general.f90
+│ PBE_growth.f90
+│ PBE_solver.f90
+│ PBE_solver.modisperse.f90
+│ PBE_test.f90
+│ PSR_pbe.f90
 │
-└───test_cases_figures
-        agg-growth.pdf
-        agg_Brownian.pdf
-        agg_Brownian_discrete.pdf
-        agg_constant.pdf
-        frag_un_bin.pdf
-        nuc-growth.pdf
+└───test_cases_figures # Example outputs and plots
+agg-growth.pdf
+agg_Brownian.pdf
+agg_Brownian_discrete.pdf
+agg_constant.pdf
+frag_un_bin.pdf
+nuc-growth.pdf
+```text
+
 
