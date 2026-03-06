@@ -34,33 +34,15 @@ def create_folder(name):
 """ USER SETTINGs """
 
 
-# paths = ['results/H-S-2_Nbins35/post-processing/',
-#          'results/H-S-2_Nbins55/post-processing/',
-#          'results/H-S-2_Nbins65/post-processing/']
+paths = ['results_LES_HS_centerline/H-S-1_centerline/post-processing/',
+         'results_LES_HS_centerline/H-S-2_centerline/post-processing/',
+         'results_LES_HS_centerline/H-S-3_centerline/post-processing/']
 
-# leg_names = [r'$\textnormal{35}$',
-#              r'$\textnormal{55}$',
-#              r'$\textnormal{65}$']
-# leg_title = r'$N_{bins}$'
-# analysis_name = 'HS2_grid_refinement_studies'
-
-
-# colors = cm.cool(np.linspace(0.1, 1, len(paths))) 
-# markers = ['o','s','v','^','o','*'] 
-# ls = ['solid','dashed','dotted','-.']
-
-
-paths = ['results/H-S_Nvpm0_Nnvpm1.05e11/post-processing/',
-         'results/H-S_Nvpm2.1e14_Nnvpm0/post-processing/',
-         'results/H-S_Nvpm2.1e12_Nnvpm1.05e11/post-processing/',
-         'results/H-S_Nvpm2.1e14_Nnvpm1.05e11/post-processing/']
-
-leg_names = [r'$(0,1.05e11)$',
-             r'$(2.1e14,0)$',
-             r'$(2.12e14,1.05e11)$',
-             r'$(2.12e12,1.05e11)$']
-leg_title = r'$(N_{vPM},N_{nvPM}), \, [\#/m^3]$'
-analysis_name = 'H-S_studies'
+leg_names = [r'$\textnormal{H-S-1}$',
+             r'$\textnormal{H-S-2}$',
+             r'$\textnormal{H-S-3}$']
+leg_title = r'$\textnormal{Case name}$'
+analysis_name = 'LES_HS_centerline'
 
 
 colors = cm.cool(np.linspace(0.1, 1, len(paths))) 
@@ -76,6 +58,7 @@ plot_dir = create_folder('PLOTS_'+analysis_name)
 mean_d_m = []
 mean_d_ice = []
 sum_nv = []
+sum_nv_ice = []
 time = []
 Temperature = []
 P_v = []
@@ -87,6 +70,7 @@ for path in paths:
     mean_d_m.append(data['Mean_diameter'][0])
     mean_d_ice.append(data['Mean_diameter_ice'][0])
     sum_nv.append(data['moment_0'][0])
+    sum_nv_ice.append(data['moment_0_ice'][0])
     time.append(data['time'][0])
     Temperature.append(data['Temperature'][0])
     P_v.append(data['P_v'][0])
@@ -229,12 +213,12 @@ try:
 
     
     ax.tick_params(labelsize=18)
-    ax.set_ylabel(r'$[kg/(s \, m^3)]$',fontsize=18)
+    ax.set_ylabel(r'$\dot{\omega}\,[kg/(s \, m^3)]$',fontsize=18)
     ax.set_xlabel(r'$T_{jet} [K]$',fontsize=18)
     
     plt.xlim(min(Temperature[-1]),260)
     #plt.ylim(0,np.max(S_v_max)+0.05*np.max(S_v_max))
-    plt.title('H2O consumption rate', fontsize=14)
+    #plt.title('H2O consumption rate', fontsize=14)
     
     plt.legend(loc='best',title=leg_title,fontsize=10,title_fontsize=10,ncols=1)
     

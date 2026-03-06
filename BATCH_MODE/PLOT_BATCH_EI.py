@@ -50,49 +50,77 @@ def get_number_concentration_by_kappa(inps_dict, kappa_condition):
     return np.sum(inps_dict["n"][mask])
 
 
+def concentration_to_emission_index(
+    C_N_jet,        # number concentration at jet conditions [#/m^3]
+    Q_fuel_mL_min,  # fuel volumetric flow [mL/min]
+    rho_fuel,       # fuel density [kg/m^3]
+    Q_exh_slpm,     # exhaust flow [slpm at T_std, p_std]
+    T_jet,          # jet temperature [K]
+    p_jet,          # jet pressure [Pa]
+    T_std=273.15,   # standard temperature for slpm [K]
+    p_std=101325.0  # standard pressure for slpm [Pa]
+):
+    """
+    C_N at jet conditions -> EI.
+
+    Returns:
+        EI         : emission index [#/kg]
+        N_dot      : particle emission rate [#/s]
+        m_fuel_dot : fuel mass flow rate [kg/s]
+        V_exh_jet  : exhaust volumetric flow at jet conditions [m^3/s]
+    """
+
+    # 1) Exhaust volumetric flow at jet conditions [m^3/s]
+    V_exh_std = Q_exh_slpm * 1e-3 / 60.0       # [m^3/s at std]
+    V_exh_jet = V_exh_std * (T_jet / T_std) * (p_std / p_jet)
+
+    # 2) Particle emission rate [#/s] from C_N and V_exh_jet
+    N_dot = C_N_jet * V_exh_jet
+
+    # 3) Fuel mass flow [kg/s]
+    V_fuel_dot = Q_fuel_mL_min * 1e-6 / 60.0   # [m^3/s]
+    m_fuel_dot = V_fuel_dot * rho_fuel         # [kg/s]
+
+    # 4) Emission index [#/kg]
+    EI = N_dot / m_fuel_dot
+
+    return EI, N_dot, m_fuel_dot, V_exh_jet
+
+
 # ---------------- User settings ----------------
-parent_dir = "./results_LES_HS_streamlines"
+parent_dir = "./results"
 
-# analysis_name = 'Ta_225'
-# legend_title ="$T=225\\,K$"
-# groups = {
-#     "$H-S-1$": [
-#         "H-S-1_r0_Ta225",
-#         "H-S-1_r4_Ta225",
-#         "H-S-1_r5_Ta225"
-#     ],
-#     "$H-S-2$": [
-#         "H-S-2_r0_Ta225",
-#         "H-S-2_r4_Ta225",
-#         "H-S-2_r5_Ta225"
-#     ],
-#     "$H-S-3$": [
-#         "H-S-3_r0_Ta225",
-#         "H-S-3_r4_Ta225",
-#         "H-S-3_r5_Ta225"
-#     ] 
-# }
-
-analysis_name = 'Ta_220'
-legend_title ="$T=220\\,K$"
+legend_title ="$EI_{\mathrm{vPM}} = 1\\times10^{17}$"
 groups = {
-    "$H-S-1$": [
-        "H-S-1_r0_Ta220",
-        "H-S-1_r4_Ta220",
-        "H-S-1_r5_Ta220"
+    "$T = 220\\,K$": [
+        "JP25_EIv1e17_EInv1e12_T220",
+        "JP25_EIv1e17_EInv1e13_T220",
+        "JP25_EIv1e17_EInv1e14_T220",
+        "JP25_EIv1e17_EInv1e15_T220",
+        "JP25_EIv1e17_EInv1e16_T220",
     ],
-    "$H-S-2$": [
-        "H-S-2_r0_Ta220",
-        "H-S-2_r4_Ta220",
-        "H-S-2_r5_Ta220"
+    "$T = 215\\,K$": [
+        "JP25_EIv1e17_EInv1e12_T215",
+        "JP25_EIv1e17_EInv1e13_T215",
+        "JP25_EIv1e17_EInv1e14_T215",
+        "JP25_EIv1e17_EInv1e15_T215",
+        "JP25_EIv1e17_EInv1e16_T215",
     ],
-    "$H-S-3$": [
-        "H-S-3_r0_Ta220",
-        "H-S-3_r4_Ta220",
-        "H-S-3_r5_Ta220"
-    ] 
+    "$T = 213\\,K$": [
+        "JP25_EIv1e17_EInv1e12_T213",
+        "JP25_EIv1e17_EInv1e13_T213",
+        "JP25_EIv1e17_EInv1e14_T213",
+        "JP25_EIv1e17_EInv1e15_T213",
+        "JP25_EIv1e17_EInv1e16_T213",
+    ],    
+    "$T = 211\\,K$": [
+        "JP25_EIv1e17_EInv1e12_T211",
+        "JP25_EIv1e17_EInv1e13_T211",
+        "JP25_EIv1e17_EInv1e14_T211",
+        "JP25_EIv1e17_EInv1e15_T211",
+        "JP25_EIv1e17_EInv1e16_T211",
+    ],
 }
-
 
 # ---------------- Plot setup ----------------
 colors = cm.cool(np.linspace(0, 1, len(groups)))
@@ -106,10 +134,6 @@ N_ice_all = []
 
 # ---------------- Main loop ----------------
 for i_group, (group_name, folder_list) in enumerate(groups.items()):
-    
-    #colors = cm.cool(np.linspace(0, 1, len(folder_list)))
-    #markers = ['s','^','v']
-    
     N_nvpm_list = []
     N_ice_list = []
 
@@ -191,7 +215,7 @@ ax.legend(fontsize=13,title=legend_title,title_fontsize=13)
 ax.grid(True, which="both", ls="--", alpha=0.5)
 
 plt.tight_layout()
-plt.savefig(parent_dir+"/NnvPM_vs_Nice_summary_"+analysis_name+".png", dpi=600)
+plt.savefig(parent_dir+"/NnvPM_vs_Nice_summary.png", dpi=600)
 plt.show()
 
 print("\nSummary post-processing completed.")

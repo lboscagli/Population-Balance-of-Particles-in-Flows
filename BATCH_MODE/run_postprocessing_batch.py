@@ -50,6 +50,13 @@ def parse_flag(val):
     val = val.strip().lower()
     return val in [".true.", "true", "1"]
 
+def get_number_concentration_by_kappa(inps_dict, kappa_condition):
+    """
+    Sum number concentration for bins satisfying kappa_condition(kappa)
+    """
+    mask = kappa_condition(inps_dict["kappa"])
+    return np.sum(inps_dict["n"][mask])
+
 def read_injection_file(filename):
     """Read ice_nucleating_particles.in file."""
     with open(filename, 'r') as f:
@@ -91,6 +98,10 @@ def postprocess_case(case_dir):
     inp_file = os.path.join(case_dir, 'ice_nucleating_particles.in')
     ice_file = os.path.join(case_dir, 'ice.in')
     dic_INPs = read_injection_file(inp_file)
+    
+    # Compute N_vpm
+    N_vpm = get_number_concentration_by_kappa(dic_INPs, lambda k: k > 0.1)
+    N_nvpm = get_number_concentration_by_kappa(dic_INPs, lambda k: k < 0.1)
     
     # Find all timestep files
     timestep_files = sorted([f for f in os.listdir(case_dir) if f.startswith('psd_T')])
@@ -144,13 +155,41 @@ def postprocess_case(case_dir):
         number_density.append(np.array(n_i)*np.array(dv_i))
         particle_type.append(np.array(type_i))
 
+    # Compute fraction of activated vPM
+    if len(number_density) > 0:
+        final_nd = number_density[-1]
+        final_types = particle_type[-1]
+        kappa = dic_INPs['kappa']
+        vpm_mask = kappa > 0.1
+        nvpm_mask = kappa < 0.1
+        activated_mask = (final_types == 1) | (final_types == 2)
+        activated_vpm_nd = final_nd[activated_mask & vpm_mask]
+        activated_nvpm_nd = final_nd[activated_mask & nvpm_mask]
+        fraction_activated_vpm = np.sum(activated_vpm_nd) / N_vpm if N_vpm > 0 else 0
+        fraction_activated_nvpm = np.sum(activated_nvpm_nd) / N_nvpm if N_nvpm > 0 else 0
+        # Cap at 1.0 to avoid exceeding due to numerical issues
+        fraction_activated_vpm = min(fraction_activated_vpm, 1.0)
+        fraction_activated_nvpm = min(fraction_activated_nvpm, 1.0)
+    else:
+        fraction_activated_vpm = 0
+        fraction_activated_nvpm = 0
+
     # ---------------- Save .mat ----------------
     dic = {'time':time,'Temperature':Temperature,'activation_binary':activation_binary,
            'P_v':P_v_consumed,'P_sat_liq':p_water_sat_liq,'P_sat_ice':p_water_sat_ice,
            'Saturation':Smw_consumed,'Mean_diameter':meansize,'Mean_diameter_ice':meansize_ice,
            'moment_0':moment_0,'moment_1':moment_1,
-           'moment_0_ice':moment_0_ice,'moment_1_ice':moment_1_ice}
+           'moment_0_ice':moment_0_ice,'moment_1_ice':moment_1_ice,
+           'N_vpm': N_vpm, 'fraction_activated_vpm': fraction_activated_vpm,
+           'N_nvpm': N_nvpm, 'fraction_activated_nvpm': fraction_activated_nvpm}
     savemat(os.path.join(plot_dir,'statistics.mat'), dic)
+
+    # Save to statistics.dat
+    with open(os.path.join(plot_dir, 'statistics.dat'), 'w') as f:
+        f.write(f"N_vpm: {N_vpm}\n")
+        f.write(f"fraction_activated_vpm: {fraction_activated_vpm}\n")
+        f.write(f"N_nvpm: {N_nvpm}\n")
+        f.write(f"fraction_activated_nvpm: {fraction_activated_nvpm}\n")
 
     # ---------------- Save growth rate .mat ----------------
     dic_h2o_growth = {'growth_rate_pbe': growth_rate_pbe, 'Temperature': Temperature}
