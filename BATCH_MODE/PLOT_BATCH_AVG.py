@@ -256,8 +256,8 @@ fig2, ax2 = plt.subplots()
 x_pos = np.arange(len(group_names))
 bar_width = 0.35
 
-bars1 = ax2.bar(x_pos - bar_width/2, nvpm_avg_fractions, bar_width, color='red', alpha=0.7, label=r'$\textnormal{nvPM}$')
-bars2 = ax2.bar(x_pos + bar_width/2, vpm_avg_fractions, bar_width, color='black', alpha=0.7, label=r'$\textnormal{vPM}$')
+bars1 = ax2.bar(x_pos - bar_width/2, nvpm_avg_fractions, bar_width, color='red', alpha=0.7, hatch='//', label=r'$\textnormal{nvPM}$')
+bars2 = ax2.bar(x_pos + bar_width/2, vpm_avg_fractions, bar_width, color='black', alpha=0.7, hatch='\\\\', label=r'$\textnormal{vPM}$')
 
 ax2.set_xlabel(r'$\textnormal{Case}$', fontsize=18)
 ax2.set_ylabel(r'$\textnormal{Activated Fraction [\%]}$', fontsize=18)

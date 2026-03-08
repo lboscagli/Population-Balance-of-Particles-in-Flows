@@ -1,0 +1,115 @@
+% LaTeX file of equations from module_thermo.f90
+\documentclass{article}
+\usepackage{amsmath}
+\begin{document}
+
+\section*{Thermodynamics Module Equations}
+
+% dv_cont
+\subsection*{Water vapor diffusivity (continuum)}
+\begin{equation}
+D_{v,c}(T,P)=10^{-4}\frac{0.211}{P_{atm}}\left(\frac{T}{273.15}\right)^{1.94},\quad P_{atm}=P\times1.01325\times10^{-5}
+\end{equation}
+
+% dv_corr
+\subsection*{Diffusivity with non-continuum correction}
+\begin{equation}
+D_{v,nc}(T,r,P,a)=\frac{D_{v,c}(T,P)}{1+\dfrac{D_{v,c}(T,P)}{a r}\sqrt{\dfrac{2\pi M_a}{R_{gas}T}}}
+\end{equation}
+
+% latent heat cond evap
+\subsection*{Latent heat of condensation/evaporation}
+\begin{equation}
+L_{c}(T)=2.5\times10^{6}-2.36\times10^{3}(T-273.15)+1.6(T-273.15)^{2}-0.06(T-273.15)^{3}
+\end{equation}
+
+% latent heat dep sub
+\subsection*{Latent heat of deposition/sublimation}
+\begin{equation}
+L_{d}(T)=2.8346\times10^{6}-340(T-273.15)-10.46(T-273.15)^{2}
+\end{equation}
+
+% kair
+\subsection*{Thermal conductivity of air (continuum)}
+\begin{equation}
+k_{air}(T)=2.381\times10^{-2}+7.113\times10^{-5}(T-273.15)
+\end{equation}
+
+% mean thermal speed
+\subsection*{Mean thermal speed of water molecule}
+\begin{equation}
+v_{th}(T)=\sqrt{\frac{8 k_{B} T}{\pi m_{H_2O}}}
+\end{equation}
+% where $m_{H_2O}=18.016/6.022\times10^{23}$ kg and $k_B$ is Boltzmann constant.
+
+% es
+\subsection*{Saturation vapor pressure over water}
+\begin{equation}
+e_{sat}(T_c)=611.2\exp\left(\frac{17.67T_c}{T_c+243.5}\right)
+\end{equation}
+
+% rho_air
+\subsection*{Moist air density}
+\begin{align}
+q_{sat}&=RH\frac{0.622 e_{sat}(T-273.15)}{P},\\
+T_v&=T(1+0.61 q_{sat}),\\
+\rho_a&=\frac{P}{R_d T_v}.
+\end{align}
+
+% ka_cont
+\subsection*{Thermal conductivity of air continuum (Ponsonby)}
+\begin{equation}
+ k_{a,c}(T)=10^{-3}(4.39+0.071T)
+\end{equation}
+
+% ka_corr
+\subsection*{Thermal conductivity correction}
+\begin{equation}
+ k_{a,nc}(T,\rho,r)=\frac{k_{a,c}(T)}{1+\dfrac{k_{a,c}(T)}{a_t r \rho_w C_p}\sqrt{\dfrac{2\pi M_a}{R_{gas}T}}}
+\end{equation}
+
+% sigma_w
+\subsection*{Surface tension of water}
+\begin{equation}
+\sigma_w(T)=0.0761-1.55\times10^{-4}(T-273.15)
+\end{equation}
+
+% sigma_ice
+\subsection*{Surface tension of ice}
+\begin{equation}
+\sigma_{ice}(T)=0.109-1.55\times10^{-4}(T-273.15)
+\end{equation}
+
+% Seq
+\subsection*{Equilibrium supersaturation (general)}
+\begin{equation}
+S_{eq}(r,r_{dry},T,\kappa)=\exp\left(\frac{2M_w\sigma_w(T)}{R_{gas}T\rho_w r}\right)
+\frac{r^{3}-r_{dry}^{3}}{r^{3}-r_{dry}^{3}(1-\kappa)}-1
+\end{equation}
+
+% Seq_water
+\subsection*{Equilibrium supersaturation (pure water)}
+\begin{equation}
+S_{eq,water}(r,T)=\exp\left(\frac{2M_w\sigma_w(T)}{R_{gas}T\rho_w r}\right)-1
+\end{equation}
+
+% Seq_ice
+\subsection*{Equilibrium supersaturation (ice)}
+\begin{equation}
+S_{eq,ice}(r,T)=\exp\left(\frac{2M_w\sigma_{ice}(T)}{R_{gas}T\rho_{ice} r}\right)-1
+\end{equation}
+
+% Seq_approx
+\subsection*{Approximate equilibrium supersaturation}
+\begin{equation}
+S_{eq,approx}(r,r_{dry},T,\kappa)=
+\frac{2M_w\sigma_w(T)}{R_{gas}T\rho_w r}-\kappa\frac{r_{dry}^{3}}{r^{3}}
+\end{equation}
+
+% r_eff
+\subsection*{Effective radius}
+\begin{equation}
+ r_{eff}(\rho,w_c,N_i)=\left(\frac{3\rho w_c}{4\pi\rho_w N_i}\right)^{1/3}
+\end{equation}
+
+\end{document}

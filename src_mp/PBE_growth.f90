@@ -254,8 +254,8 @@ else if (growth_function>=4) then
     call pbe_freezing_temperature(index, v0_act, v0_max, T_frz)
 
     !This requires revision - TODO  Luca 
-    if ((ni_type(index) .eq. 0.0) .or. (p_water > p_sat_liq)) T_frz=0.0
-    !if ((ni_type(index) .eq. 0.0)) T_frz=0.0
+    !if ((ni_type(index) .eq. 0.0) .or. (p_water > p_sat_liq)) T_frz=0.0
+    if ((ni_type(index) .eq. 0.0)) T_frz=0.0
 
     !Droplet activation and growth based on Ponsonby et al. 2025
     if ((activation_logical_bins(index))) then  
