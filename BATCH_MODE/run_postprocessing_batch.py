@@ -104,7 +104,11 @@ def postprocess_case(case_dir):
     N_nvpm = get_number_concentration_by_kappa(dic_INPs, lambda k: k < 0.1)
     
     # Find all timestep files
-    timestep_files = sorted([f for f in os.listdir(case_dir) if f.startswith('psd_T')])
+    #timestep_files = sorted([f for f in os.listdir(case_dir) if f.startswith('psd_T')])
+    timestep_files = sorted(
+        [f for f in os.listdir(case_dir) if f.startswith('psd_T')],
+        key=lambda x: int(x.split('T')[1].split('.')[0])
+    )
     
     # Temperature & main output
     temp_file = os.path.join(case_dir, 'ice_jet_temperature.out')
@@ -138,7 +142,7 @@ def postprocess_case(case_dir):
 
     # ---------------- Read PSD timestep files ----------------
     v_m, d_m, number_density, particle_type = [], [], [], []
-
+    fraction_activated_vpm, fraction_activated_nvpm = [], []
     for t_filename in timestep_files:
         v_i, d_i, n_i, type_i, dv_i = [], [], [], [], []
         with open(os.path.join(case_dir, t_filename)) as f:
@@ -154,25 +158,66 @@ def postprocess_case(case_dir):
         d_m.append(np.array(d_i))
         number_density.append(np.array(n_i)*np.array(dv_i))
         particle_type.append(np.array(type_i))
-
-    # Compute fraction of activated vPM
-    if len(number_density) > 0:
-        final_nd = number_density[-1]
-        final_types = particle_type[-1]
+        n_particles = np.array(n_i)*np.array(dv_i)
+        status = np.array(type_i)
+        
+        # Compute fraction of activated vPM
         kappa = dic_INPs['kappa']
-        vpm_mask = kappa > 0.1
-        nvpm_mask = kappa < 0.1
-        activated_mask = (final_types == 1) | (final_types == 2)
-        activated_vpm_nd = final_nd[activated_mask & vpm_mask]
-        activated_nvpm_nd = final_nd[activated_mask & nvpm_mask]
-        fraction_activated_vpm = np.sum(activated_vpm_nd) / N_vpm if N_vpm > 0 else 0
-        fraction_activated_nvpm = np.sum(activated_nvpm_nd) / N_nvpm if N_nvpm > 0 else 0
-        # Cap at 1.0 to avoid exceeding due to numerical issues
-        fraction_activated_vpm = min(fraction_activated_vpm, 1.0)
-        fraction_activated_nvpm = min(fraction_activated_nvpm, 1.0)
-    else:
-        fraction_activated_vpm = 0
-        fraction_activated_nvpm = 0
+        is_vpm = kappa > 0.1
+        is_nvpm = kappa < 0.1
+        
+        nd_0 = np.array(dic_INPs['n'].flatten())
+        n_vpm_0 = np.nansum(nd_0[is_vpm]) 
+        n_nvpm_0 = np.nansum(nd_0[is_nvpm]) 
+        
+        
+        #Water and ice activation
+        # activated_mask = (particle_type_i == 1) | (particle_type_i == 2)
+        # activated_vpm_nd = number_density_i[activated_mask & vpm_mask]
+        # activated_nvpm_nd = number_density_i[activated_mask & nvpm_mask]
+        # fraction_activated_vpm_i = np.sum(activated_vpm_nd) / N_vpm if N_vpm > 0 else 0
+        # fraction_activated_nvpm_i = np.sum(activated_nvpm_nd) / N_nvpm if N_nvpm > 0 else 0
+        # # Cap at 1.0 to avoid exceeding due to numerical issues
+        # fraction_activated_vpm.append(min(fraction_activated_vpm_i, 1.0))
+        # fraction_activated_nvpm.append(min(fraction_activated_nvpm_i, 1.0))      
+
+
+        # VPM: sum of activated particles in VPM bins
+        n_vpm_active = np.nansum(n_particles[is_vpm][(status[is_vpm] == 1) | (status[is_vpm] == 2)])
+        #n_vpm_active = np.nansum(n_particles[is_vpm][(status[is_vpm] == 2)])
+        fraction_activated_vpm.append(n_vpm_active / n_vpm_0 if n_vpm_0 > 0 else np.nan)
+
+        # NVPM: sum of activated particles in NVPM bins
+        n_nvpm_active = np.nansum(n_particles[is_nvpm][(status[is_nvpm] == 1) | (status[is_nvpm] == 2)])
+        #n_nvpm_active = np.nansum(n_particles[is_nvpm][(status[is_nvpm] == 2)])
+        # Special rule: if any VPM is active, NVPM activation is 1
+        if np.any((status[is_vpm] == 1) | (status[is_vpm] == 2)):
+            fraction_activated_nvpm.append(1.0)
+        else:
+            fraction_activated_nvpm.append(n_nvpm_active / n_nvpm_0 if n_nvpm_0 > 0 else np.nan)
+            
+
+    # # Compute fraction of activated vPM
+    # if len(number_density) > 0:
+    #     final_nd = number_density[-1]
+    #     print(final_nd)
+    #     final_types = particle_type[-1]
+    #     kappa = dic_INPs['kappa']
+    #     vpm_mask = kappa > 0.1
+    #     nvpm_mask = kappa < 0.1
+    #     #Water and ice activation
+    #     activated_mask = (final_types == 1) | (final_types == 2)
+    #     #activated_ice_mask = (final_types == 2)
+    #     activated_vpm_nd = final_nd[activated_mask & vpm_mask]
+    #     activated_nvpm_nd = final_nd[activated_mask & nvpm_mask]
+    #     fraction_activated_vpm = np.sum(activated_vpm_nd) / N_vpm if N_vpm > 0 else 0
+    #     fraction_activated_nvpm = np.sum(activated_nvpm_nd) / N_nvpm if N_nvpm > 0 else 0
+    #     # Cap at 1.0 to avoid exceeding due to numerical issues
+    #     fraction_activated_vpm = min(fraction_activated_vpm, 1.0)
+    #     fraction_activated_nvpm = min(fraction_activated_nvpm, 1.0)      
+    # else:
+    #     fraction_activated_vpm = 0
+    #     fraction_activated_nvpm = 0
 
     # ---------------- Save .mat ----------------
     dic = {'time':time,'Temperature':Temperature,'activation_binary':activation_binary,
